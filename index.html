@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 욕창 예방·관리 앱 - medisore</title>
+    <style>
+        /* === 글로벌 스타일 및 색상 변수 === */
+        :root {
+            --primary: #4A74E8; 
+            --primary-light: #EEF2FF;
+            --secondary: #E0E7FF;
+            --text-dark: #1E293B;
+            --text-muted: #64748B;
+            --bg-color: #F4F7FB;
+            --card-bg: #FFFFFF;
+            --border-color: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            /* 자세별 원형 시간표 색상 */
+            --pose-color-1: #93C5FD; /* 바로 누움 (앙와위) */
+            --pose-color-2: #3B82F6; /* 왼쪽으로 누움 (좌측위) */
+            --pose-color-3: #1D4ED8; /* 오른쪽으로 누움 (우측위) */
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Pretendard', -apple-system, sans-serif; background-color: #e2e8f0; display: flex; justify-content: center; height: 100vh; margin: 0; }
+        
+        .app-container { 
+            width: 100%; max-width: 400px; height: 100%; max-height: 850px; 
+            background-color: var(--bg-color);
+            position: relative; display: flex; flex-direction: column; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1); overflow: hidden; 
+            background: linear-gradient(180deg, #e6f0fa 0%, #f4f7fb 40%, #ffffff 100%);
+        }
+
+        /* === ⭐️ 워터마크 로고 === */
+        .watermark-bg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70%; max-width: 250px; opacity: 0.03; pointer-events: none; z-index: 0; mix-blend-mode: multiply; }
+        
+        /* === 스플래시 화면 === */
+        #splash {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, #dceaff 0%, #c4dbfe 100%);
+            z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px;
+            transition: opacity 0.5s ease-out;
+        }
+        .splash-logo-text { width: 220px; object-fit: contain; }
+        .splash-logo-symbol { width: 120px; object-fit: contain; }
+        
+        /* === 헤더 스타일 (로고 정중앙 배치 및 크기 확대) === */
+        .header { 
+            background-color: transparent; 
+            padding: 15px 20px 5px; 
+            z-index: 10; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 80px; 
+            position: relative; 
+        }
+        .header-logo { 
+            height: 70px; 
+            object-fit: contain; 
+            position: absolute; 
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .header-spec { 
+            font-size: 12px; font-weight: 800; color: var(--primary); 
+            background: var(--card-bg); padding: 6px 12px; border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03); display: none;
+            position: absolute;
+            right: 20px;
+        }
+        
+        .content { flex: 1; overflow-y: auto; padding: 10px 20px 110px; scroll-behavior: smooth; z-index: 1; }
+        .page { display: none; animation: slideUp 0.4s ease-out forwards; opacity: 0; transform: translateY(10px); }
+        .page.active { display: block; opacity: 1; transform: translateY(0); }
+        .start-page { flex-direction: column; align-items: center; justify-content: center; height: 100%; padding-top: 40px; }
+        .page.start-page.active { display: flex; }
+        
+        @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+        
+        /* === 카드 및 버튼 UI === */
+        .card { 
+            background: var(--card-bg); border-radius: 24px; padding: 24px; margin-bottom: 20px; 
+            box-shadow: 0 8px 24px rgba(149, 157, 165, 0.1); border: none; position: relative;
+        }
+        .card-title { font-size: 17px; font-weight: 800; margin-bottom: 16px; color: var(--text-dark); display: flex; align-items: center; gap: 8px;}
+        
+        .btn { 
+            display: block; width: 100%; padding: 16px; background-color: var(--primary); color: white; 
+            border: none; border-radius: 16px; font-size: 15px; font-weight: bold; text-align: center; 
+            cursor: pointer; margin-top: 15px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(74, 116, 232, 0.3);
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-success { background-color: var(--success); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+        .btn-outline { background-color: var(--card-bg); color: var(--primary); border: 2px solid var(--primary-light); box-shadow: none; }
+        
+        /* === 하단 네비게이션바 === */
+        .bottom-nav { 
+            position: absolute; bottom: 0; width: 100%; display: flex; justify-content: space-between;
+            background-color: rgba(255,255,255,0.98); backdrop-filter: blur(10px); 
+            padding: 12px 15px calc(12px + env(safe-area-inset-bottom)); 
+            z-index: 20; box-shadow: 0 -4px 30px rgba(0,0,0,0.04); border-radius: 30px 30px 0 0; 
+        }
+        .nav-item { flex: 1; text-align: center; font-size: 10px; color: var(--text-muted); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: all 0.2s; font-weight: 600;}
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 22px; filter: grayscale(100%) opacity(0.6); transition: all 0.2s; }
+        .nav-item.active .nav-icon { filter: grayscale(0%) opacity(1); transform: translateY(-2px); }
+
+        /* === 폼 및 업로드 === */
+        input[type=text], input[type=password], input[type=number], select {
+            width: 100%; padding: 16px; border-radius: 14px; border: 1px solid var(--border-color); 
+            font-size: 15px; outline: none; background-color: var(--bg-color); transition: all 0.2s; color: var(--text-dark);
+        }
+        input:focus, select:focus { border-color: var(--primary); background-color: var(--card-bg); box-shadow: 0 0 0 4px var(--primary-light); }
+        
+        .upload-zone { border: 2px dashed #93C5FD; border-radius: 20px; padding: 40px 10px; text-align: center; background-color: var(--primary-light); cursor: pointer; transition: all 0.3s; margin-bottom: 15px; }
+        .upload-zone:hover { background-color: #DBEAFE; border-color: var(--primary); }
+        
+        img.preview { max-width: 100%; border-radius: 16px; display: block; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        
+        /* === 뱃지 및 알림 === */
+        .badge { display: inline-block; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 800; margin-right: 6px; margin-bottom: 6px; }
+        .badge-blue { background-color: var(--primary-light); color: var(--primary); }
+        .badge-yellow { background-color: #FEF3C7; color: #D97706; }
+        .badge-red { background-color: #FEE2E2; color: var(--danger); }
+        
+        .alert-box { background-color: var(--primary-light); border: none; border-radius: 16px; padding: 18px; margin-bottom: 20px; color: var(--primary); line-height: 1.5; }
+
+        /* === ⭐️ 커스텀 원형 타이머 UI === */
+        .timer-container { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); border-radius: 24px; padding: 24px; box-shadow: 0 8px 24px rgba(149, 157, 165, 0.1); margin-bottom: 20px; border: 1px solid var(--primary-light); position: relative; }
+        .timer-info { flex: 1; }
+        .timer-circle { 
+            position: relative;
+            width: 86px; height: 86px; 
+            border-radius: 50%; 
+            background: conic-gradient(var(--primary) 100%, var(--primary-light) 0);
+            display: flex; align-items: center; justify-content: center; 
+            cursor: pointer;
+        }
+        .timer-circle::before {
+            content: '';
+            position: absolute;
+            top: 6px; left: 6px; right: 6px; bottom: 6px;
+            background-color: var(--card-bg);
+            border-radius: 50%;
+            z-index: 1;
+        }
+        .timer-circle span {
+            position: relative;
+            z-index: 2;
+            color: var(--primary); font-size: 18px; font-weight: 900; letter-spacing: -0.5px;
+        }
+
+        /* === ⭐️ 커스텀 모달 (알람용) === */
+        .modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 10000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); animation: fadeIn 0.3s; }
+        .modal-content-box { background: var(--card-bg); width: 85%; max-width: 320px; border-radius: 24px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2); animation: slideUpModal 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; padding: 45px 24px 24px; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUpModal { from { opacity: 0; transform: translateY(30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+        /* === 슬라이더 === */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; margin: 15px 0; }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 26px; width: 26px; border-radius: 50%; background: var(--card-bg); border: 6px solid var(--primary); cursor: pointer; margin-top: -10px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); transition: transform 0.1s; }
+        input[type=range]::-webkit-slider-thumb:active { transform: scale(1.1); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: var(--border-color); border-radius: 3px; }
+        
+        /* === 흐름도 === */
+        .status-flow { display: flex; align-items: center; justify-content: space-between; margin: 20px 0 30px 0; background: var(--bg-color); padding: 18px; border-radius: 20px;}
+        .status-item { flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; }
+        .status-time { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: bold; background: var(--card-bg); padding: 4px 10px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);}
+        .status-img { width: 50px; height: auto; margin-bottom: 8px; opacity: 0.3; transition: 0.3s; filter: grayscale(100%); }
+        .status-name { font-size: 12px; font-weight: 800; color: var(--text-muted); }
+        .status-arrow { width: 20px; fill: #CBD5E1; }
+        
+        .status-item.current .status-time { color: white; background: var(--primary); box-shadow: 0 4px 10px rgba(74, 116, 232, 0.3); }
+        .status-item.current .status-img { width: 65px; opacity: 1; transform: scale(1.1); filter: grayscale(0%); }
+        .status-item.current .status-name { color: var(--text-dark); font-size: 14px; }
+        
+        .circular-schedule-container { width: 100%; display: flex; justify-content: center; margin-top: 20px; }
+        
+        /* === 달력 및 타임라인 === */
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-weight: 900; color: var(--text-dark); font-size: 18px; }
+        .calendar-nav { cursor: pointer; font-size: 16px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--card-bg); border-radius: 12px; color: var(--text-muted); box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: 0.2s; }
+        .calendar-nav:hover { background: var(--primary-light); color: var(--primary); }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center; }
+        .calendar-day-header { font-size: 12px; color: var(--text-muted); font-weight: bold; padding-bottom: 10px; }
+        .calendar-day { padding: 12px 0; border-radius: 12px; font-size: 14px; color: var(--text-dark); font-weight: 700; cursor: pointer; transition: all 0.2s; background-color: var(--card-bg); border: 1px solid var(--border-color); }
+        .calendar-day:hover { background-color: var(--primary-light); border-color: var(--primary-light); }
+        .calendar-day.selected { background-color: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(74, 116, 232, 0.3); }
+        .calendar-day.empty { background: none; border: none; cursor: default; }
+        
+        .timeline-table { display: flex; flex-direction: column; width: 100%; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); margin-top: 15px; background: var(--card-bg); }
+        .timeline-header-row { display: flex; background-color: var(--bg-color); color: var(--text-muted); font-size: 12px; font-weight: 800; text-align: center; padding: 14px 0; border-bottom: 1px solid var(--border-color); }
+        
+        .timeline-data-row { display: flex; border-bottom: 1px solid var(--border-color); background-color: var(--card-bg); align-items: center; padding: 18px 0; animation: fadeIn 0.5s; }
+        .timeline-data-row:last-child { border-bottom: none; }
+        .col-time { width: 22%; text-align: center; font-size: 14px; font-weight: 900; color: var(--primary); border-right: 1px dashed var(--border-color); padding: 0 4px; }
+        .col-pose { width: 39%; text-align: center; font-size: 13px; padding: 0 10px; border-right: 1px dashed var(--border-color); line-height: 1.5; }
+        .col-wound { width: 39%; text-align: center; font-size: 13px; padding: 0 10px; line-height: 1.5; }
+
+        /* === 얇고 속이 빈 인체도 맵 스타일 === */
+        .body-map-container { position: relative; width: 100%; background: var(--bg-color); border-radius: 16px; padding: 0; border: 1px solid var(--border-color); overflow: hidden;}
+        .body-map-img { width: 100%; display: block; mix-blend-mode: multiply; }
+        
+        .body-dot { 
+            position: absolute; 
+            width: 14px; 
+            height: 14px; 
+            background-color: transparent; 
+            border: 2px solid var(--danger); 
+            border-radius: 50%; 
+            transform: translate(-50%, -50%); 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            box-shadow: 0 0 4px rgba(239, 68, 68, 0.4); 
+        }
+        .body-dot:hover { transform: translate(-50%, -50%) scale(1.3); background-color: rgba(239, 68, 68, 0.2); }
+        .body-dot.active { background-color: var(--primary); border-color: var(--card-bg); box-shadow: 0 0 0 2px var(--primary), 0 3px 8px rgba(74, 116, 232, 0.4); z-index: 10; }
+        
+        .selected-part-display { font-size: 15px; font-weight: 800; color: var(--primary); text-align: center; padding: 14px; background-color: var(--primary-light); border-radius: 14px; margin-bottom: 15px; display: none; border: 1px dashed var(--primary); }
+        
+        /* 유틸 클래스 */
+        .page-header { padding: 10px 5px 25px; }
+        .greeting-text { font-size: 24px; font-weight: 900; color: var(--text-dark); line-height: 1.3; }
+        .greeting-name { color: var(--primary); }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- 배경 워터마크 -->
+    <img src="/static/logo_3.png" class="watermark-bg" alt="medisore watermark" onerror="this.src='/static/logo.png'; this.onerror=null;">
+
+    <!-- ⭐️ 알람 모달창 -->
+    <div id="alarmModal" class="modal-overlay">
+        <div class="modal-content-box">
+            <!-- 상단 시계 아이콘 -->
+            <div style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); width: 70px; height: 70px; background-color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <div style="width: 50px; height: 50px; background-color: var(--primary-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 24px;">
+                    🕒
+                </div>
+            </div>
+
+            <div style="display: inline-block; background-color: var(--primary-light); color: var(--primary); font-size: 11px; font-weight: 800; padding: 6px 14px; border-radius: 20px; margin-bottom: 15px;">체위 변경 알림</div>
+            <h3 style="color: var(--text-dark); font-size: 22px; font-weight: 900; margin-bottom: 15px;">체위 변경 시간이에요!</h3>
+            <hr style="width: 24px; border: 1.5px solid var(--border-color); margin: 0 auto 15px; border-radius: 2px;">
+            
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 25px; line-height: 1.6;">
+                환자의 욕창 예방을 위해<br>추천 체위(<b id="alarmNextPoseStr" style="color: var(--primary); font-size: 15px;">바로 누움</b>)로<br>자세를 변경해주세요.
+            </p>
+
+            <button class="btn" style="background-color: var(--primary); padding: 16px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; margin-top: 0; box-shadow: 0 4px 12px rgba(74, 116, 232, 0.3);" onclick="closeAlarmModal(); switchTab('pose', document.querySelectorAll('.nav-item')[1])">
+                <span style="font-size: 18px;">🛌</span> <span id="alarmBtnText">바로 누움 자세로 변경</span>
+            </button>
+            
+            <button class="btn" style="background-color: transparent; border: 1px solid var(--border-color); color: var(--text-muted); padding: 14px; margin-top: 0; margin-bottom: 20px; font-size: 14px; border-radius: 12px; font-weight: bold; box-shadow: none;" onclick="closeAlarmModal()">
+                나중에 하기 <span style="font-size: 13px; font-weight: normal;">(15분 후 다시 알림)</span>
+            </button>
+
+            <div style="background-color: var(--bg-color); border-radius: 16px; padding: 15px; display: flex; align-items: center; gap: 12px; text-align: left;">
+                <div style="width: 32px; height: 32px; background-color: transparent; border: 2px solid var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; flex-shrink: 0;">
+                    ✔️
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+                    정기적인 체위 변경은 욕창 예방의<br><strong style="color: var(--primary);">가장 중요한 방법</strong>입니다.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 스플래시 화면 -->
+    <div id="splash">
+        <img src="/static/logo_3.png" alt="medisore text" class="splash-logo-text" onerror="this.src='/static/logo.png'; this.onerror=null;">
+        <img src="/static/logo_2_3.png" alt="medisore symbol" class="splash-logo-symbol" onerror="this.src='/static/logo_2_2.png'; this.onerror=null;">
+    </div>
+
+    <!-- 헤더 영역 -->
+    <div class="header" id="headerArea" style="display: none;">
+        <img src="/static/logo_3.png" alt="medisore" class="header-logo" onerror="this.src='/static/logo.png'; this.onerror=null;">
+        <span id="headerSpec" class="header-spec"></span>
+    </div>
+    
+    <div class="content" id="mainContent" style="display: none;">
+
+        <!-- ================= [ 시작 화면 0 (간병인 로그인) ] ================= -->
+        <div id="login" class="page start-page">
+            <div style="text-align: center; margin-bottom: 40px;">
+                <img src="/static/logo_2_3.png" alt="MediSore Logo" style="width: 120px; height: 120px; object-fit: contain; margin-bottom: 20px;" onerror="this.src='/static/logo.png'; this.onerror=null;">
+                <h2 style="color: var(--text-dark); margin-bottom: 10px; font-weight: 900; font-size: 24px;">사용자 로그인</h2>
+                <p style="color: var(--text-muted); font-size: 15px;">스마트한 욕창 관리의 시작</p>
+            </div>
+
+            <div class="card" style="width: 100%;">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: bold; color: var(--text-muted);">아이디</label>
+                    <input type="text" id="caregiverId" placeholder="사번 또는 아이디 입력">
+                </div>
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: bold; color: var(--text-muted);">비밀번호</label>
+                    <input type="password" id="caregiverPw" placeholder="비밀번호 입력">
+                </div>
+                <button class="btn" onclick="loginCaregiver()">로그인</button>
+            </div>
+        </div>
+        
+        <!-- ================= [ 시작 화면 1 (환자 정보 입력) ] ================= -->
+        <div id="start" class="page start-page">
+            <div style="text-align: center; margin-bottom: 40px;">
+                <h2 style="color: var(--text-dark); margin-bottom: 10px; font-weight: 900; font-size: 24px;">환자 등록</h2>
+                <p style="color: var(--text-muted); font-size: 15px;">맞춤형 체위 추천을 위해 정보를 입력해주세요.</p>
+            </div>
+
+            <div class="card" style="width: 100%;">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: bold; color: var(--text-muted);">환자 이름</label>
+                    <input type="text" id="patientName" placeholder="예: 홍길동">
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: bold; color: var(--text-muted);">환자 나이 (만)</label>
+                    <input type="number" id="patientAge" placeholder="예: 75">
+                </div>
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: bold; color: var(--text-muted);">성별</label>
+                    <select id="patientGender">
+                        <option value="M">남성</option>
+                        <option value="F">여성</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="startApp()">시작하기</button>
+            </div>
+        </div>
+
+        <!-- ================= [ 탭 1: 홈 (일정) ] ================= -->
+        <div id="home" class="page">
+            <div class="page-header">
+                <div class="greeting-text">안녕하세요,<br><span class="greeting-name" id="greetingName">간병인</span>님 👋</div>
+                <div id="achievementRate" style="margin-top: 10px; display: inline-block; padding: 6px 14px; background: var(--card-bg); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); border: 1px solid var(--border-color);"></div>
+            </div>
+            
+            <div class="timer-container">
+                <div class="timer-info">
+                    <p style="font-size: 13px; color: var(--text-muted); font-weight: bold; margin-bottom: 6px;">오늘의 추천 체위 변경</p>
+                    <p style="font-size: 12px; color: var(--text-dark);">다음 변경까지 남은 시간</p>
+                    <p id="nextRecommendedPose" style="font-size: 15px; font-weight: 900; color: var(--primary); margin-top: 8px; display: inline-block; background: var(--primary-light); padding: 4px 10px; border-radius: 8px;">추천: 바로 누움</p>
+                </div>
+                <div class="timer-circle" id="countdownCircle" onclick="testAlarm()" title="클릭 시 알람 시연"><span id="countdown">00:00</span></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">순환형 체위 추천</div>
+                
+                <div style="margin-bottom: 20px; padding: 0 5px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; color: var(--primary); margin-bottom: 5px;">
+                        <span>2시간</span><span>2시간 30분</span><span>3시간</span>
+                    </div>
+                    <input type="range" id="intervalSlider" min="2" max="3" step="0.5" value="2" oninput="setScheduleInterval(parseFloat(this.value))">
+                </div>
+
+                <div class="status-flow" id="statusFlowUI"></div>
+                
+                <div class="circular-schedule-container" id="circularScheduleUI"></div>
+                
+                <button class="btn btn-outline" style="margin-top: 20px;" onclick="alert('알림 및 시간표가 저장되었습니다.')">일정 저장</button>
+            </div>
+        </div>
+
+        <!-- ================= [ 탭 2: 자세 코칭 ] ================= -->
+        <div id="pose" class="page">
+            <div class="page-header">
+                <div class="greeting-text">자세 분석 / 코칭</div>
+            </div>
+
+            <div class="card">
+                <div class="card-title"><span style="font-size: 20px;">📸</span> 촬영 가이드</div>
+                <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 15px;">
+                    1. 머리를 <b>사진 위쪽</b>에 맞춰 주세요.<br>
+                    2. 첫 촬영은 <b>침대를 평평하게 내려서</b> 찍어주세요.<br>
+                    3. <b>팔은 몸 옆에 두고</b> 촬영해 주세요.
+                </p>
+                
+                <!-- ⭐️ 추가된 고퀄리티 가이드 이미지 (텍스트 아래 배치) -->
+                <img src="/static/pose_guide.png" alt="촬영 가이드 상세" style="width: 100%; height: auto; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
+
+
+                <div class="upload-zone" id="poseDropZone" onclick="document.getElementById('poseFileInput').click()">
+                    <span style="font-size: 32px; display: block; margin-bottom: 10px;">☁️</span>
+                    <span style="font-size: 15px; font-weight: 800; color: var(--primary);">환자 자세 사진 업로드</span>
+                    <span style="font-size: 12px; color: var(--text-muted); display: block; margin-top: 6px;">터치하여 앨범에서 선택</span>
+                    <input type="file" id="poseFileInput" accept="image/*" style="display: none;">
+                </div>
+                
+                <div id="imageOverlayContainer" onclick="document.getElementById('poseFileInput').click()" style="position: relative; width: 100%; display: none; margin-bottom: 15px; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: 0 4px 15px rgba(0,0,0,0.05); cursor: pointer;">
+                    <img id="posePreviewImg" class="preview" alt="자세 미리보기" style="width: 100%; display: block; margin: 0; border-radius: 0;">
+                    <!-- CSS 핀 오버레이 영역 -->
+                    <div id="pinOverlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10;"></div>
+                </div>
+                
+                <div id="pressureNoteArea"></div>
+                <button class="btn" id="poseAnalyzeBtn" onclick="sendToPoseAI()" style="display: none;">AI 정렬 분석 시작</button>
+            </div>
+            
+            <div id="poseResultArea"></div>
+        </div>
+
+        <!-- ================= [ 탭 3: 상처 분석 ] ================= -->
+        <div id="analysis" class="page">
+            <div class="page-header">
+                <div class="greeting-text">욕창 단계 판정 보조</div>
+            </div>
+
+            <div class="card" id="bodyMapCard">
+                <div class="card-title">욕창 발생 부위 선택</div>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">인체도에서 욕창이나 상처가 의심되는 부위를 먼저 터치해주세요.</p>
+                
+                <!-- 두 개의 이미지를 나란히 배치하는 래퍼 -->
+                <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 15px;">
+                    
+                    <!-- 후면 (왼쪽 사람) -->
+                    <div class="body-map-container" style="flex: 1; max-width: 150px;">
+                        <img src="/static/body_map_back.png" class="body-map-img" alt="인체도 후면" onerror="this.src='body_map_back.png';">
+                        
+                        <div class="body-dot" style="left: 51%; top: 10%;" onclick="selectBodyPart('뒤통수', this)"></div>
+                        <div class="body-dot" style="left: 39%; top: 24%;" onclick="selectBodyPart('왼쪽 견갑골', this)"></div>
+                        <div class="body-dot" style="left: 64%; top: 24%;" onclick="selectBodyPart('오른쪽 견갑골', this)"></div>
+                        <div class="body-dot" style="left: 20%; top: 38%;" onclick="selectBodyPart('왼쪽 팔꿈치', this)"></div>
+                        <div class="body-dot" style="left: 83%; top: 38%;" onclick="selectBodyPart('오른쪽 팔꿈치', this)"></div>
+                        <div class="body-dot" style="left: 51%; top: 41%;" onclick="selectBodyPart('척추', this)"></div>
+                        <div class="body-dot" style="left: 51%; top: 48%;" onclick="selectBodyPart('천골(엉치뼈)', this)"></div>
+                        <div class="body-dot" style="left: 34%; top: 50%;" onclick="selectBodyPart('왼쪽 대전자', this)"></div>
+                        <div class="body-dot" style="left: 70%; top: 50%;" onclick="selectBodyPart('오른쪽 대전자', this)"></div>
+                        <div class="body-dot" style="left: 42%; top: 54%;" onclick="selectBodyPart('왼쪽 좌골결절', this)"></div>
+                        <div class="body-dot" style="left: 62%; top: 54%;" onclick="selectBodyPart('오른쪽 좌골결절', this)"></div>
+                        <div class="body-dot" style="left: 42%; top: 82%;" onclick="selectBodyPart('왼쪽 발목(후면)', this)"></div>
+                        <div class="body-dot" style="left: 61%; top: 82%;" onclick="selectBodyPart('오른쪽 발목(후면)', this)"></div>
+                        <div class="body-dot" style="left: 43%; top: 93%;" onclick="selectBodyPart('왼쪽 발뒤꿈치', this)"></div>
+                        <div class="body-dot" style="left: 60%; top: 93%;" onclick="selectBodyPart('오른쪽 발뒤꿈치', this)"></div>
+                    </div>
+
+                    <!-- 전면 (오른쪽 사람) -->
+                    <div class="body-map-container" style="flex: 1; max-width: 150px;">
+                        <img src="/static/body_map_front.png" class="body-map-img" alt="인체도 전면" onerror="this.src='body_map_front.png';">
+                        
+                        <div class="body-dot" style="left: 36%; top: 13%;" onclick="selectBodyPart('왼쪽 귀', this)"></div>
+                        <div class="body-dot" style="left: 58%; top: 13%;" onclick="selectBodyPart('오른쪽 귀', this)"></div>
+                        <div class="body-dot" style="left: 18%; top: 22%;" onclick="selectBodyPart('왼쪽 어깨', this)"></div>
+                        <div class="body-dot" style="left: 77%; top: 22%;" onclick="selectBodyPart('오른쪽 어깨', this)"></div>
+                        <div class="body-dot" style="left: 40%; top: 35%;" onclick="selectBodyPart('왼쪽 흉곽', this)"></div>
+                        <div class="body-dot" style="left: 55%; top: 35%;" onclick="selectBodyPart('오른쪽 흉곽', this)"></div>
+                        <div class="body-dot" style="left: 27%; top: 50%;" onclick="selectBodyPart('왼쪽 골반', this)"></div>
+                        <div class="body-dot" style="left: 68%; top: 50%;" onclick="selectBodyPart('오른쪽 골반', this)"></div>
+                        <div class="body-dot" style="left: 37%; top: 60%;" onclick="selectBodyPart('왼쪽 허벅지', this)"></div>
+                        <div class="body-dot" style="left: 60%; top: 60%;" onclick="selectBodyPart('오른쪽 허벅지', this)"></div>
+                        <div class="body-dot" style="left: 38%; top: 82%;" onclick="selectBodyPart('왼쪽 발목(전면)', this)"></div>
+                        <div class="body-dot" style="left: 57%; top: 82%;" onclick="selectBodyPart('오른쪽 발목(전면)', this)"></div>
+                        <div class="body-dot" style="left: 40%; top: 94%;" onclick="selectBodyPart('왼쪽 발가락', this)"></div>
+                        <div class="body-dot" style="left: 56%; top: 94%;" onclick="selectBodyPart('오른쪽 발가락', this)"></div>
+                    </div>
+
+                </div>
+                
+                <div id="selectedPartDisplay" class="selected-part-display">선택된 부위: 없음</div>
+            </div>
+
+            <div class="card" id="woundUploadCard" style="display: none; animation: slideUp 0.4s;">
+                <div class="card-title">상처 사진 업로드</div>
+                <p style="font-size: 13px; color: var(--text-dark); margin-bottom: 15px; line-height: 1.5;">
+                    <b>상처가 사진의 가운데에, 화면을 가득 채우도록 찍어 주세요.</b><br>
+                    조명이 밝은 곳에서 정면으로 촬영하면 더 정확합니다.
+                </p>
+                <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                    <span style="font-size: 32px; display: block; margin-bottom: 10px;">☁️</span>
+                    <span style="font-size: 15px; font-weight: 800; color: var(--primary);" id="uploadInstruction">선택된 부위의 사진 업로드</span>
+                    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                </div>
+                
+                <div id="woundPreviewContainer" onclick="document.getElementById('fileInput').click()" style="position: relative; width: 100%; display: none; margin-bottom: 15px; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: 0 4px 15px rgba(0,0,0,0.05); cursor: pointer;">
+                    <img id="previewImg" class="preview" alt="미리보기" style="width: 100%; display: block; margin: 0; border-radius: 0;">
+                    <div id="woundGuideOverlay" style="position: absolute; top: 15%; left: 15%; width: 70%; height: 70%; border: 3px dashed #10B981; box-shadow: 0 0 0 9999px rgba(0,0,0,0.4); pointer-events: none; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 15px;">
+                        <span style="color: white; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.6); padding: 6px 12px; border-radius: 12px; text-align: center; word-break: keep-all;">이 테두리 안에 상처를 꽉 채워주세요</span>
+                    </div>
+                </div>
+                <button class="btn" id="analyzeBtn" onclick="sendToAI()" style="display: none;">AI 단계 판별하기</button>
+
+                <div style="margin-top: 20px; padding: 15px; background: var(--primary-light); border-radius: 12px;">
+                    <p style="font-size: 13px; font-weight: 900; color: var(--primary); margin-bottom: 8px;">⚠️ 사용 전 알아두세요</p>
+                    <ul style="font-size: 12px; color: var(--text-dark); padding-left: 18px; line-height: 1.6; margin: 0;">
+                        <li>이 기능은 <b>욕창 여부를 판단하지 않습니다.</b> 이미 욕창으로 확인된 상처의 단계를 가늠하는 보조 도구입니다.</li>
+                        <li><b>1~4단계만</b> 다룹니다. (심부조직손상, 미분류 제외)</li>
+                        <li><b>3·4단계 구분이 가장 어려우므로</b> 결과가 나오면 반드시 전문가의 확인이 필요합니다.</li>
+                        <li>이 앱은 <b>의료기기가 아니며</b>, 최종 판단은 의료진이 합니다.</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div id="resultArea"></div>
+        </div>
+
+        <!-- ================= [ 탭 4: 단계별 처치법 ] ================= -->
+        <div id="treatment" class="page">
+            <div class="page-header">
+                <div class="greeting-text">처치 가이드</div>
+            </div>
+            
+            <!-- 1단계 -->
+            <div id="treat-stage1" class="card treat-card">
+                <div class="card-title">단계 I <span style="font-size: 13px; font-weight: normal; color: var(--text-muted); margin-left: auto;">비 창백성 홍반</span></div>
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin-bottom: 15px;">
+                <div style="font-size: 14px; line-height: 1.6; color: var(--text-dark);">
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <span style="width: 24px; height: 24px; background: var(--primary-light); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">1</span>
+                        <div><strong style="color: var(--primary);">압력 요인 제거</strong><br><span style="color: var(--text-muted); font-size: 13px;">즉각적인 체위 변경이 필수적입니다.</span></div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <span style="width: 24px; height: 24px; background: var(--primary-light); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">2</span>
+                        <div><strong style="color: var(--primary);">예방적 드레싱 적용 및 준비</strong><br>
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 8px;">처치 전 비누와 미온수로 손을 씻고 철저히 건조시킵니다.</span>
+                            <div style="margin-top: 4px; padding: 12px; background: var(--bg-color); border-radius: 12px;">
+                                <div style="margin-bottom: 12px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <span class="badge badge-blue" style="margin-bottom:0;">접착성 폼 드레싱 패치</span>
+                                        <a href="https://search.shopping.naver.com/search/all?query=접착성+폼+드레싱" target="_blank" style="font-size:11px; color:var(--primary); font-weight:bold; text-decoration:none; background:white; padding:3px 8px; border-radius:8px; border:1px solid var(--border-color);">🛒 최저가 구매</a>
+                                    </div>
+                                    <span style="font-size: 12px; color: var(--text-dark);">상처 보호 및 쿠션 역할을 하며 삼출물 흡수 능력이 좋습니다.</span>
+                                </div>
+                                <div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <span class="badge badge-blue" style="margin-bottom:0;">하이드로콜로이드 밴드</span>
+                                        <a href="https://search.shopping.naver.com/search/all?query=하이드로콜로이드+밴드" target="_blank" style="font-size:11px; color:var(--primary); font-weight:bold; text-decoration:none; background:white; padding:3px 8px; border-radius:8px; border:1px solid var(--border-color);">🛒 최저가 구매</a>
+                                    </div>
+                                    <span style="font-size: 12px; color: var(--text-dark);">건조 가피의 자가 분해를 유도하고 육아조직 형성과 상피화를 촉진합니다.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="https://www.youtube.com/watch?v=aA3hS7v23Ow&t=335s" target="_blank" class="btn btn-outline" style="padding: 12px; margin-top: 5px;">▶️ 영상 가이드 보기</a>
+                </div>
+                <div id="mission-area-1"></div>
+            </div>
+
+            <!-- 2단계 -->
+            <div id="treat-stage2" class="card treat-card">
+                <div class="card-title">단계 II <span style="font-size: 13px; font-weight: normal; color: var(--text-muted); margin-left: auto;">부분층 피부 손상</span></div>
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin-bottom: 15px;">
+                <div style="font-size: 14px; line-height: 1.6; color: var(--text-dark);">
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <span style="width: 24px; height: 24px; background: var(--primary-light); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">1</span>
+                        <div><strong style="color: var(--primary);">상처 부위 청결 유지</strong><br><span style="color: var(--text-muted); font-size: 13px;">생리식염수나 증류수로 세척하고 완전히 건조시킵니다. 감염 여부를 함께 확인합니다.</span></div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <span style="width: 24px; height: 24px; background: var(--primary-light); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">2</span>
+                        <div><strong style="color: var(--primary);">적절한 드레싱 적용</strong><br>
+                            <div style="margin-top: 4px; padding: 12px; background: var(--bg-color); border-radius: 12px;">
+                                <div style="margin-bottom: 12px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <span class="badge badge-yellow" style="margin-bottom:0;">하이드로겔 드레싱 패치</span>
+                                        <a href="https://search.shopping.naver.com/search/all?query=하이드로겔+드레싱" target="_blank" style="font-size:11px; color:var(--primary); font-weight:bold; text-decoration:none; background:white; padding:3px 8px; border-radius:8px; border:1px solid var(--border-color);">🛒 최저가 구매</a>
+                                    </div>
+                                    <span style="font-size: 12px; color: var(--text-dark);">고수분을 함유하여 상처 기저부를 촉촉하게 유지하고 상피 세포화를 촉진합니다.</span>
+                                </div>
+                                <div style="margin-bottom: 12px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <span class="badge badge-red" style="margin-bottom:0;">실버 드레싱 폼</span>
+                                        <a href="https://search.shopping.naver.com/search/all?query=실버+폼+드레싱" target="_blank" style="font-size:11px; color:var(--primary); font-weight:bold; text-decoration:none; background:white; padding:3px 8px; border-radius:8px; border:1px solid var(--border-color);">🛒 최저가 구매</a>
+                                    </div>
+                                    <span style="font-size: 12px; color: var(--text-dark);">감염된 상처에 적용하여 균 증식을 억제합니다.</span>
+                                </div>
+                                <div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <span class="badge badge-blue" style="margin-bottom:0;">세척용 멸균 생리식염수</span>
+                                        <a href="https://search.shopping.naver.com/search/all?query=멸균+생리식염수" target="_blank" style="font-size:11px; color:var(--primary); font-weight:bold; text-decoration:none; background:white; padding:3px 8px; border-radius:8px; border:1px solid var(--border-color);">🛒 최저가 구매</a>
+                                    </div>
+                                    <span style="font-size: 12px; color: var(--text-dark);">상처 부위를 무자극으로 세척하여 청결을 유지합니다.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="https://www.youtube.com/watch?v=aA3hS7v23Ow&t=500s" target="_blank" class="btn btn-outline" style="padding: 12px; margin-top: 5px;">▶️ 영상 가이드 보기</a>
+                </div>
+                <div id="mission-area-2"></div>
+            </div>
+
+            <!-- 3, 4단계 -->
+            <div id="treat-stage34" class="card treat-card">
+                <div class="card-title">단계 III ~ IV <span style="font-size: 13px; font-weight: normal; color: var(--text-muted); margin-left: auto;">전층 피부 손상</span></div>
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin-bottom: 15px;">
+                <div class="alert-box" style="background-color: #fef2f2; border: none; color: var(--danger);">
+                    <strong style="font-size: 15px;">🚨 즉시 병원 방문 필수!</strong><br>
+                    <span style="font-size: 13px; display: inline-block; margin-top: 5px; color: #7f1d1d;">감염 위험이 매우 높습니다. 무리한 자가 치료를 멈추고 <b>반드시 전문 의료진의 진료</b>를 받아야 합니다.</span>
+                </div>
+                <div style="font-size: 14px; line-height: 1.6; color: var(--text-dark);">
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <span style="width: 24px; height: 24px; background: var(--primary-light); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">1</span>
+                        <div><strong style="color: var(--primary);">병원 진료 후 관리 지침</strong><br>
+                            <span style="color: var(--text-muted); font-size: 13px;">생리식염수나 증류수로 세척하며, 괴사조직 제거술 및 전문적인 감염 관리를 지속합니다. 의료진 처방에 따른 드레싱을 교체합니다.</span>
+                            <div style="margin-top: 8px; padding: 12px; background: var(--bg-color); border-radius: 12px;">
+                                <div style="margin-bottom: 12px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <span class="badge badge-red" style="margin-bottom:0;">칼슘 알지네이트 드레싱</span>
+                                        <a href="https://search.shopping.naver.com/search/all?query=알지네이트+드레싱" target="_blank" style="font-size:11px; color:var(--primary); font-weight:bold; text-decoration:none; background:white; padding:3px 8px; border-radius:8px; border:1px solid var(--border-color);">🛒 최저가 구매</a>
+                                    </div>
+                                    <span style="font-size: 12px; color: var(--text-dark);">삼출물이 많은 깊은 상처의 삼출물을 흡수하고 습윤 환경을 유지합니다.</span>
+                                </div>
+                                <div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <span class="badge badge-blue" style="margin-bottom:0;">세척용 멸균 생리식염수</span>
+                                        <a href="https://search.shopping.naver.com/search/all?query=멸균+생리식염수" target="_blank" style="font-size:11px; color:var(--primary); font-weight:bold; text-decoration:none; background:white; padding:3px 8px; border-radius:8px; border:1px solid var(--border-color);">🛒 최저가 구매</a>
+                                    </div>
+                                    <span style="font-size: 12px; color: var(--text-dark);">상처 세척 및 소독용 생리식염수입니다.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="https://www.youtube.com/watch?v=aA3hS7v23Ow&t=598s" target="_blank" class="btn btn-outline" style="padding: 12px; margin-top: 5px;">▶️ 영상 가이드 보기</a>
+                </div>
+                <div id="mission-area-34"></div>
+            </div>
+        </div>
+
+        <!-- ================= [ 탭 5: 리포트 (달력 ➔ 3열 타임라인) ] ================= -->
+        <div id="report" class="page">
+            <div class="page-header">
+                <div class="greeting-text">기록 및 리포트</div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); border-radius: 16px; padding: 16px 20px; margin-bottom: 20px;">
+                <div>
+                    <h3 id="reportPatientName" style="margin-bottom: 4px; font-size: 15px; font-weight: 900; color: var(--text-dark);">-</h3>
+                    <p id="reportPatientDetails" style="font-size: 12px; color: var(--text-muted); margin: 0; font-weight: bold;">-</p>
+                </div>
+                <button onclick="resetPatient()" style="background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 12px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">정보 초기화 ↺</button>
+            </div>
+            
+            <div class="card" id="calendarCard">
+                <div class="calendar-header">
+                    <span class="calendar-nav" onclick="changeMonth(-1)">‹</span>
+                    <span id="calendarMonthText">2026년 8월</span>
+                    <span class="calendar-nav" onclick="changeMonth(1)">›</span>
+                </div>
+                <div class="calendar-grid" id="calendarGrid"></div>
+                
+                <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px dashed var(--border-color);">
+                    <button class="btn btn-outline" style="display: inline-block; width: 100%; font-size: 14px; padding: 14px;" onclick="downloadWeeklyReport()">📥 7일 관리기록지 다운로드 (PDF)</button>
+                </div>
+            </div>
+
+            <div class="card" id="timelineCard" style="display: none; background: transparent; box-shadow: none; padding: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 0 5px;">
+                    <div class="card-title" id="selectedDateTitle" style="margin-bottom: 0;">📅 2026.08.03 기록</div>
+                    <button class="btn btn-outline" style="width: auto; padding: 8px 14px; font-size: 12px; margin-top: 0; background: white;" onclick="showCalendar()">달력으로</button>
+                </div>
+
+                <div class="timeline-table">
+                    <div class="timeline-header-row">
+                        <div class="col-time" style="color: var(--text-muted) !important;">시간</div>
+                        <div class="col-pose" style="color: var(--text-muted) !important;">자세 관리</div>
+                        <div class="col-wound" style="color: var(--text-muted) !important;">상처 관리</div>
+                    </div>
+                    
+                    <div id="dynamicTimeline">
+                        <!-- 동적 데이터 영역 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 하단 네비게이션 -->
+    <div class="bottom-nav" id="bottomNav" style="display: none;">
+        <div class="nav-item active" onclick="switchTab('home', this)"><span class="nav-icon">🏠</span><span>일정</span></div>
+        <div class="nav-item" onclick="switchTab('pose', this)"><span class="nav-icon">🧍</span><span>체위 추천</span></div>
+        <div class="nav-item" onclick="switchTab('analysis', this)"><span class="nav-icon">🔍</span><span>단계 판별</span></div>
+        <div class="nav-item" onclick="switchTab('treatment', this)"><span class="nav-icon">🩹</span><span>가이드</span></div>
+        <div class="nav-item" onclick="switchTab('report', this)"><span class="nav-icon">📄</span><span>기록</span></div>
+    </div>
+</div>
+
+<script>
+    // --- [스플래시 화면 및 알람 제어] ---
+    let alarmTriggered = false; 
+
+    document.addEventListener("DOMContentLoaded", () => {
+        setTimeout(() => {
+            const splash = document.getElementById('splash');
+            if (splash) {
+                splash.style.opacity = '0';
+                setTimeout(() => { 
+                    splash.style.display = 'none'; 
+                    document.getElementById('headerArea').style.display = 'flex';
+                    document.getElementById('mainContent').style.display = 'block';
+                }, 500);
+            }
+        }, 2000);
+
+        const savedCaregiver = localStorage.getItem('medisore_caregiver');
+        const savedPatient = localStorage.getItem('medisore_patient');
+        
+        if (savedCaregiver && savedPatient) {
+            currentCaregiver = JSON.parse(savedCaregiver);
+            currentPatient = JSON.parse(savedPatient);
+            applyPatientInfo(); 
+        } else if (savedCaregiver && !savedPatient) {
+            currentCaregiver = JSON.parse(savedCaregiver);
+            document.getElementById('login').classList.remove('active');
+            document.getElementById('start').classList.add('active');
+        } else {
+            document.getElementById('login').classList.add('active');
+        }
+
+        const now = new Date();
+        calYear = now.getFullYear();
+        calMonth = now.getMonth() + 1;
+        currentSelectedDate = `${calYear}-${String(calMonth).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        
+        renderCalendar(calYear, calMonth);
+        setScheduleInterval(parseFloat(document.getElementById('intervalSlider').value));
+    });
+
+    // --- [공통 데이터 및 로직] ---
+    let currentCaregiver = { id: '' };
+    let currentPatient = { name: '', age: '', gender: '' };
+
+    let lastRecordedPose = localStorage.getItem('medisore_last_pose') || '';
+    let globalTimeline = JSON.parse(localStorage.getItem('medisore_timeline')) || {}; 
+    
+    // 동적 캘린더용 상태 변수
+    let currentSelectedDate = ""; 
+    let calYear = new Date().getFullYear();
+    let calMonth = new Date().getMonth() + 1;
+
+    let globalW0 = null;
+    let globalH0 = null; 
+    let globalL0 = null;
+    let selectedBodyPart = "";
+    let poseFile = null; 
+    let woundFile = null;
+    
+    let currentInterval = 2;
+
+    const poseSequence = [
+        { name: "바로 누움", shortName: "앙와위", color: "#93C5FD", image: "앙와위.png", icon: "앙와위.png" },
+        { name: "왼쪽으로 누움", shortName: "좌측위", color: "#60A5FA", image: "좌측위.png", icon: "좌측위.png" },
+        { name: "오른쪽으로 누움", shortName: "우측위", color: "#2563EB", image: "우측위.png", icon: "우측위.png" }
+    ];
+
+    // ⭐️ 달성률 업데이트 함수
+    function updateAchievementRate() {
+        const dates = Object.keys(globalTimeline);
+        const el = document.getElementById('achievementRate');
+        if (!el) return;
+        
+        if (dates.length === 0) {
+            el.innerHTML = `<span style="font-size: 12px; color: var(--text-muted); font-weight: bold;">첫 체위 변경 기록을 남겨보세요!</span>`;
+            return;
+        }
+
+        let successDays = 0;
+        dates.forEach(date => {
+            const events = globalTimeline[date];
+            const poseCount = events.filter(e => e.isPose).length;
+            if (poseCount >= 8) {
+                successDays++;
+            }
+        });
+
+        const rate = Math.round((successDays / dates.length) * 100);
+        el.innerHTML = `<span style="font-size: 12px; color: var(--text-muted); font-weight: bold;">🏆 일일 8회 목표 달성률: <strong style="color: var(--primary); font-size: 14px;">${rate}%</strong> (${successDays}/${dates.length}일)</span>`;
+    }
+
+    function showAlarmModal() {
+        const nextPose = localStorage.getItem('medisore_next_pose') || "바로 누움";
+        document.getElementById('alarmNextPoseStr').innerText = nextPose;
+        document.getElementById('alarmBtnText').innerText = nextPose + " 자세로 변경";
+        document.getElementById('alarmModal').style.display = 'flex';
+    }
+
+    function closeAlarmModal() {
+        document.getElementById('alarmModal').style.display = 'none';
+    }
+
+    function testAlarm() {
+        showAlarmModal();
+    }
+
+    function loginCaregiver() {
+        const cId = document.getElementById('caregiverId').value.trim();
+        const cPw = document.getElementById('caregiverPw').value.trim();
+
+        if(!cId || !cPw) { alert("아이디와 비밀번호를 모두 입력해주세요."); return; }
+
+        currentCaregiver = { id: cId };
+        localStorage.setItem('medisore_caregiver', JSON.stringify(currentCaregiver));
+
+        document.getElementById('login').classList.remove('active');
+        document.getElementById('start').classList.add('active');
+    }
+
+    function startApp() {
+        const nameInput = document.getElementById('patientName').value.trim();
+        const ageInput = document.getElementById('patientAge').value.trim();
+        const genderInput = document.getElementById('patientGender').value;
+
+        if(!nameInput || !ageInput) { alert("환자의 이름과 나이를 모두 입력해주세요."); return; }
+
+        currentPatient = { name: nameInput, age: ageInput, gender: genderInput };
+        localStorage.setItem('medisore_patient', JSON.stringify(currentPatient));
+        
+        applyPatientInfo();
+    }
+
+    function applyPatientInfo() {
+        document.getElementById('login').classList.remove('active');
+        document.getElementById('start').classList.remove('active');
+        document.getElementById('home').classList.add('active');
+        document.getElementById('bottomNav').style.display = 'flex';
+
+        document.getElementById('greetingName').innerText = currentCaregiver.id;
+        document.getElementById('reportPatientName').innerText = `${currentPatient.name} 환자`;
+        const genderText = currentPatient.gender === 'M' ? '남성' : '여성';
+        document.getElementById('reportPatientDetails').innerText = `${currentPatient.age}세 / ${genderText}`;
+
+        let savedNextPose = localStorage.getItem('medisore_next_pose') || "바로 누움";
+        document.getElementById('nextRecommendedPose').innerText = `추천: ${savedNextPose}`;
+        
+        updateAchievementRate(); // 화면 렌더링 시 달성률 업데이트
+    }
+
+    function resetPatient() {
+        if(confirm("모든 데이터를 지우고 사용자 로그인 화면으로 돌아가시겠습니까?")) {
+            localStorage.clear();
+            location.reload(); 
+        }
+    }
+
+    function getCurrentTime() {
+        const now = new Date();
+        return String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    }
+    
+    function getTodayDateStr() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    function formatTimeObject(dateObj) {
+        return String(dateObj.getHours()).padStart(2, '0') + ':' + String(dateObj.getMinutes()).padStart(2, '0');
+    }
+
+    function setScheduleInterval(interval) {
+        currentInterval = interval;
+        renderHomeSchedule(); 
+    }
+
+    function renderHomeSchedule() {
+        const flowUI = document.getElementById('statusFlowUI');
+        const container = document.getElementById('circularScheduleUI');
+        
+        let lastPose = localStorage.getItem('medisore_last_pose') || '바로 누움';
+        let lastTimeStr = localStorage.getItem('medisore_last_time');
+        
+        let baseTime = new Date();
+        if (lastTimeStr) {
+            baseTime = new Date(lastTimeStr);
+        } else {
+            baseTime.setHours(0, 0, 0, 0); 
+        }
+        
+        let currPoseIndex = poseSequence.findIndex(p => p.name === lastPose);
+        if (currPoseIndex === -1) {
+            if(lastPose.includes('왼')) currPoseIndex = 1;
+            else if(lastPose.includes('오른')) currPoseIndex = 2;
+            else currPoseIndex = 0;
+        }
+        
+        const prevPoseIndex = (currPoseIndex + 2) % 3;
+        const nextPoseIndex = (currPoseIndex + 1) % 3;
+        
+        const currPose = poseSequence[currPoseIndex];
+        const prevPose = poseSequence[prevPoseIndex];
+        const nextPose = poseSequence[nextPoseIndex];
+        
+        const prevTime = new Date(baseTime.getTime() - currentInterval * 3600000);
+        const nextTime = new Date(baseTime.getTime() + currentInterval * 3600000);
+        
+        // 상단 흐름도 (유지)
+        flowUI.innerHTML = `
+            <div class="status-item">
+                <div class="status-time">${formatTimeObject(prevTime)}</div>
+                <img src="/static/${prevPose.image}" class="status-img" alt="${prevPose.name}" onerror="this.style.display='none'">
+                <div class="status-name">${prevPose.name}</div>
+            </div>
+            <svg class="status-arrow" viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+            <div class="status-item current">
+                <div class="status-time">${formatTimeObject(baseTime)}</div>
+                <img src="/static/${currPose.image}" class="status-img" alt="${currPose.name}" onerror="this.style.display='none'">
+                <div class="status-name">${currPose.name}</div>
+            </div>
+            <svg class="status-arrow" viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+            <div class="status-item">
+                <div class="status-time">${formatTimeObject(nextTime)}</div>
+                <img src="/static/${nextPose.image}" class="status-img" alt="${nextPose.name}" onerror="this.style.display='none'">
+                <div class="status-name">${nextPose.name}</div>
+            </div>
+        `;
+        
+        // ⭐️ 원형 시간표 렌더링 (요청하신 이미지 스타일로 변경)
+        const svgSize = 360;  // 텍스트가 잘리지 않도록 캔버스 크기 약간 더 확대
+        const cx = 180, cy = 180, r = 100; // 중심점 및 반지름 설정
+        
+        let svgHtml = `<svg viewBox="0 0 ${svgSize} ${svgSize}" width="100%" height="100%" style="max-width: ${svgSize}px;">`;
+        
+        // 1. 외곽선 원 그리기
+        svgHtml += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--primary)" stroke-width="2" opacity="0.8"/>`;
+        
+        let loopPoseIndex = currPoseIndex;
+        const startHourFloat = baseTime.getHours() + baseTime.getMinutes() / 60;
+        
+        for (let offset = 0; offset < 24; offset += currentInterval) {
+            // 시간 각도 계산 (1시간 = 15도, 12시 방향인 -90도부터 시작)
+            const angle = -90 + (startHourFloat + offset) * 15;
+            const angleRad = angle * Math.PI / 180;
+            
+            // 외곽선 상의 노드(원) 좌표 계산
+            const nodeX = cx + r * Math.cos(angleRad);
+            const nodeY = cy + r * Math.sin(angleRad);
+            
+            // 2. 중심점에서 노드까지 방사형 선 그리기
+            svgHtml += `<line x1="${cx}" y1="${cy}" x2="${nodeX}" y2="${nodeY}" stroke="var(--primary)" stroke-width="2" opacity="0.8"/>`;
+            
+            // 3. 노드 원 그리기 (흰색 배경으로 선을 가림)
+            svgHtml += `<circle cx="${nodeX}" cy="${nodeY}" r="25" fill="#ffffff" stroke="var(--primary)" stroke-width="2"/>`;
+            
+            // 4. 노드 안의 자세 아이콘 삽입
+            let pIndex = loopPoseIndex % 3;
+            const pose = poseSequence[pIndex];
+            const imgSize = 36;
+            const imgX = nodeX - imgSize / 2;
+            const imgY = nodeY - imgSize / 2;
+            svgHtml += `<image href="/static/${pose.icon}" x="${imgX}" y="${imgY}" width="${imgSize}" height="${imgSize}" />`;
+            
+            // 5. 노드 바깥쪽에 시간 텍스트 표시
+            const textR = r + 55; // 원 바깥으로 텍스트 밀어내기 (겹침 방지)
+            const textX = cx + textR * Math.cos(angleRad);
+            const textY = cy + textR * Math.sin(angleRad) + 5; // 세로 중앙 정렬용 +5 보정
+            
+            let markerTime = new Date(baseTime.getTime() + offset * 3600000);
+            let exactMarkerStr = formatTimeObject(markerTime);
+            
+            svgHtml += `<text x="${textX}" y="${textY}" font-size="14" font-weight="900" text-anchor="middle" fill="var(--primary)">${exactMarkerStr}</text>`;
+            
+            loopPoseIndex++;
+        }
+        
+        svgHtml += `</svg>`;
+        container.innerHTML = svgHtml;
+    }
+
+    function renderCalendar(year, month) {
+        document.getElementById('calendarMonthText').innerText = `${year}년 ${month}월`;
+        const grid = document.getElementById('calendarGrid');
+        
+        let html = `
+            <div class="calendar-day-header">일</div><div class="calendar-day-header">월</div><div class="calendar-day-header">화</div>
+            <div class="calendar-day-header">수</div><div class="calendar-day-header">목</div><div class="calendar-day-header">금</div><div class="calendar-day-header">토</div>
+        `;
+        
+        const firstDay = new Date(year, month - 1, 1).getDay();
+        const lastDate = new Date(year, month, 0).getDate();
+        
+        for(let i = 0; i < firstDay; i++) {
+            html += `<div class="calendar-day empty"></div>`;
+        }
+        
+        let selY = 0, selM = 0, selD = 0;
+        if (currentSelectedDate) {
+            const parts = currentSelectedDate.split('-');
+            selY = parseInt(parts[0]); selM = parseInt(parts[1]); selD = parseInt(parts[2]);
+        }
+
+        for(let i = 1; i <= lastDate; i++) {
+            let isSelected = (year === selY && month === selM && i === selD);
+            let selClass = isSelected ? 'selected' : '';
+            
+            let checkDateStr = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            let hasData = globalTimeline[checkDateStr] && globalTimeline[checkDateStr].length > 0;
+            let displayContent = hasData ? '✔️' : i;
+            
+            html += `<div class="calendar-day ${selClass}" onclick="selectDate(${i})">${displayContent}</div>`;
+        }
+        
+        grid.innerHTML = html;
+    }
+
+    function changeMonth(delta) {
+        calMonth += delta;
+        if (calMonth > 12) { calMonth = 1; calYear++; } 
+        else if (calMonth < 1) { calMonth = 12; calYear--; }
+        renderCalendar(calYear, calMonth);
+    }
+
+    function selectDate(dayNum) {
+        const y = calYear;
+        const m = String(calMonth).padStart(2, '0');
+        const d = String(dayNum).padStart(2, '0');
+        currentSelectedDate = `${y}-${m}-${d}`;
+        
+        renderCalendar(calYear, calMonth);
+        document.getElementById('calendarCard').style.display = 'none';
+        document.getElementById('timelineCard').style.display = 'block';
+        document.getElementById('selectedDateTitle').innerText = `📅 ${y}.${m}.${d} 기록`;
+        renderTimeline();
+    }
+
+    function showCalendar() {
+        document.getElementById('timelineCard').style.display = 'none';
+        document.getElementById('calendarCard').style.display = 'block';
+    }
+
+    function switchTab(pageId, element) {
+        document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        if (element) {
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            element.classList.add('active');
+        }
+    }
+
+    function selectBodyPart(partName, element) {
+        selectedBodyPart = partName;
+        document.querySelectorAll('.body-dot').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
+        
+        const display = document.getElementById('selectedPartDisplay');
+        display.style.display = 'block';
+        display.innerText = "👉 선택된 부위: " + partName;
+        document.getElementById('uploadInstruction').innerText = `[${partName}] 상처 사진 업로드`;
+        
+        document.getElementById('woundUploadCard').style.display = 'block';
+        document.getElementById('resultArea').innerHTML = ''; 
+
+        document.getElementById('dropZone').style.display = 'block'; 
+        document.getElementById('woundPreviewContainer').style.display = 'none'; 
+        document.getElementById('previewImg').src = '';
+        document.getElementById('analyzeBtn').style.display = 'none';
+    }
+
+    function renderTimeline() {
+        const tbody = document.getElementById('dynamicTimeline');
+        const dayData = globalTimeline[currentSelectedDate] || [];
+
+        if (dayData.length === 0) {
+            tbody.innerHTML = '<div style="text-align:center; padding: 30px; font-size: 14px; color: var(--text-muted); font-weight: bold;">아직 기록된 데이터가 없습니다.</div>';
+            return;
+        }
+        let html = '';
+        dayData.forEach(item => {
+            html += `
+            <div class="timeline-data-row">
+                <div class="col-time">${item.time}</div>
+                <div class="col-pose">${item.poseHtml}</div>
+                <div class="col-wound">${item.woundHtml}</div>
+            </div>`;
+        });
+        tbody.innerHTML = html;
+    }
+
+    function goToTreatment(stageNum) {
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        document.querySelectorAll('.nav-item')[3].classList.add('active'); 
+        switchTab('treatment');
+        
+        document.querySelectorAll('.treat-card').forEach(card => card.style.border = 'none');
+        
+        let targetId = 'treat-stage1';
+        if (stageNum == 2) targetId = 'treat-stage2';
+        if (stageNum >= 3) targetId = 'treat-stage34';
+        
+        const targetCard = document.getElementById(targetId);
+        if (targetCard) {
+            targetCard.style.border = '2px solid var(--primary)'; 
+            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => { targetCard.style.border = 'none'; }, 3000);
+        }
+    }
+
+    setInterval(() => {
+        let lastTimeStr = localStorage.getItem('medisore_last_time');
+        let baseTime = lastTimeStr ? new Date(lastTimeStr).getTime() : new Date().setHours(0,0,0,0);
+        let targetTime = baseTime + currentInterval * 3600000;
+        let diff = Math.floor((targetTime - Date.now()) / 1000);
+        
+        if (diff <= 0) {
+            diff = 0; 
+            if(!alarmTriggered) {
+                showAlarmModal();
+                alarmTriggered = true;
+            }
+        }
+        
+        let totalSeconds = currentInterval * 3600;
+        let percent = (diff / totalSeconds) * 100;
+        const circle = document.getElementById('countdownCircle');
+        if(circle) {
+            circle.style.background = `conic-gradient(var(--primary) ${percent}%, var(--primary-light) 0)`;
+        }
+
+        const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+        const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+        const s = String(diff % 60).padStart(2, '0');
+        
+        if(document.getElementById('countdown')) {
+            if(h > 0) document.getElementById('countdown').innerText = `${h}:${m}:${s}`;
+            else document.getElementById('countdown').innerText = `${m}:${s}`;
+        }
+    }, 1000);
+
+    document.getElementById('poseFileInput').addEventListener('change', (e) => {
+        poseFile = e.target.files[0];
+        showPreview(poseFile, 'posePreviewImg', 'poseAnalyzeBtn', 'poseResultArea');
+        
+        const btn = document.getElementById('poseAnalyzeBtn');
+        btn.innerText = 'AI 정렬 분석 시작';
+        btn.style.display = 'block'; 
+        
+        document.getElementById('pressureNoteArea').innerHTML = '';
+        document.getElementById('pinOverlay').innerHTML = '';
+    });
+
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+        woundFile = e.target.files[0];
+        showPreview(woundFile, 'previewImg', 'analyzeBtn', 'resultArea');
+    });
+
+    function showPreview(file, imgId, btnId, resultId) {
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = document.getElementById(imgId);
+            img.src = e.target.result;
+            
+            if (imgId === 'posePreviewImg') {
+                document.getElementById('poseDropZone').style.display = 'none'; 
+                document.getElementById('imageOverlayContainer').style.display = 'block';
+                document.getElementById('pinOverlay').innerHTML = ''; 
+            } else if (imgId === 'previewImg') {
+                document.getElementById('dropZone').style.display = 'none'; 
+                document.getElementById('woundPreviewContainer').style.display = 'block';
+                const guideOverlay = document.getElementById('woundGuideOverlay');
+                if (guideOverlay) guideOverlay.style.display = 'flex';
+            } else {
+                img.style.display = 'block';
+            }
+            
+            document.getElementById(btnId).style.display = 'block';
+            document.getElementById(resultId).innerHTML = ''; 
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async function sendToPoseAI() {
+        if (!poseFile) return;
+        const btn = document.getElementById('poseAnalyzeBtn');
+        
+        btn.innerText = '분석 중...';
+        btn.disabled = true;
+
+        const formData = new FormData(); 
+        formData.append('file', poseFile);
+        formData.append('pose_type', 'auto');
+        formData.append('W0', globalW0); 
+        formData.append('H0', globalH0); 
+        formData.append('L0', globalL0);        
+        
+        try {
+            const response = await fetch('/analyze_pose', { method: 'POST', body: formData });
+            
+            if (!response.ok) { throw new Error(`서버 응답 오류 (상태 코드: ${response.status})`); }
+
+            const data = await response.json();
+            if (data.error) { alert(data.error); return; }
+
+            if (data.calib_data) {
+                globalW0 = data.calib_data.W0; 
+                globalH0 = data.calib_data.H0; 
+                globalL0 = data.calib_data.L0;
+            }
+            
+            document.getElementById('posePreviewImg').src = "data:image/jpeg;base64," + (data.pressure_image || data.pose_image);
+            document.getElementById('imageOverlayContainer').style.display = 'block';
+            
+            const noteArea = document.getElementById('pressureNoteArea');
+            if (data.pressure_note) {
+                noteArea.innerHTML = `<div style="font-size: 11px; color: var(--danger); margin-top: 10px; text-align: center; font-weight: bold;">※ ${data.pressure_note}</div>`;
+            } else {
+                noteArea.innerHTML = '';
+            }
+
+            if (data.hold) { 
+                document.getElementById('pinOverlay').innerHTML = ''; 
+                let reason = data.hold_reason ? data.hold_reason : '가림';
+                let holdMsg = data.hold_message ? data.hold_message : '다시 촬영해주세요.';
+                
+                document.getElementById('poseResultArea').innerHTML = `
+                    <div class="card" style="animation: slideUp 0.5s; background-color: #fef2f2; border: 2px solid #fecaca; text-align: center; margin-top: 15px;">
+                        <div style="font-size: 36px; margin-bottom: 10px;">⚠️</div>
+                        <div style="color: #b91c1c; font-size: 18px; font-weight: 900; margin-bottom: 10px;">판정 보류: ${reason}</div>
+                        <div style="color: #ef4444; font-size: 14px; font-weight: bold; margin-bottom: 20px;">${holdMsg}</div>
+                        <button class="btn" style="background-color: #ef4444; font-size:15px; padding:16px;" onclick="document.getElementById('poseFileInput').click()">📸 재촬영하기</button>
+                    </div>
+                `;
+                btn.style.display = 'none';
+                document.getElementById('poseResultArea').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                return; 
+            }
+
+            let displayPose = data.pose_label_user || data.pose_label || data.pose_type || '알 수 없음';
+            
+            let bgColor = '#f0fdf4', fontColor = '#15803d', titleText = `✅ ${displayPose} (정상)`;
+            if (data.status === 'yellow') { bgColor = '#fef3c7'; fontColor = '#b45309'; titleText = `⚠️ ${displayPose} (주의)`; } 
+            else if (data.status === 'red') { bgColor = '#fef2f2'; fontColor = '#b91c1c'; titleText = `🚨 ${displayPose} (불량)`; }
+
+            let warningHtml = data.warning ? `<div class="alert-box">🚨 ${data.warning}</div>` : '';
+            
+            let guidesHtml = '';
+            let overlayHtml = '<svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4;">';
+            let pinsHtml = '';
+
+            if (data.guides && data.guides.length > 0) {
+                let max = data.guide_max || 3;
+                let visible = data.guides.slice(0, max);
+                let hidden = data.guides.slice(max);
+
+                let validPins = visible.filter(g => g.pin && g.pin.x !== null && g.pin.y !== null);
+                validPins.sort((a, b) => a.pin.y - b.pin.y);
+                
+                let startY = 15; 
+                let gapY = validPins.length > 1 ? (70 / (validPins.length - 1)) : 0; 
+                if(validPins.length === 1) { startY = 50; }
+
+                guidesHtml += `<div style="margin-top: 15px;">`;
+                visible.forEach((g, idx) => {
+                    let num = idx + 1; 
+                    let isRed = g.status === 'red';
+                    let b = isRed ? 'badge-red' : 'badge-yellow';
+                    let t = isRed ? '불량' : '주의';
+                    let color = isRed ? '#ef4444' : '#f59e0b'; 
+                    
+                    let pinIndex = validPins.indexOf(g);
+                    if (pinIndex !== -1) {
+                        let px = g.pin.x * 100;
+                        let py = g.pin.y * 100;
+                        let badgeX = 88; 
+                        let badgeY = startY + (pinIndex * gapY); 
+                        
+                        overlayHtml += `<line x1="${px}%" y1="${py}%" x2="${badgeX}%" y2="${badgeY}%" stroke="${color}" stroke-width="2.5" stroke-dasharray="6,5" opacity="0.9" style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.3));" />`;
+                        pinsHtml += `<div style="position: absolute; left: ${px}%; top: ${py}%; width: 14px; height: 14px; background-color: ${color}; border-radius: 50%; transform: translate(-50%, -50%); z-index: 5; border: 2.5px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>`;
+                        pinsHtml += `<div style="position: absolute; left: ${badgeX}%; top: ${badgeY}%; width: 28px; height: 28px; background-color: ${color}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; font-family: 'Pretendard', sans-serif; transform: translate(-50%, -50%); z-index: 5; border: 2.5px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.2);"> ${num} </div>`;
+                    }
+
+                    let numCircle = `<span style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; background-color:${color}; color:white; border-radius:50%; font-size:12px; margin-right:8px; font-weight:900; box-shadow: 0 2px 6px rgba(0,0,0,0.2); flex-shrink: 0;">${num}</span>`;
+                    let whyHtml = (g.why && g.why.trim() !== '') ? `<div style="font-size: 11px; color: var(--text-muted); padding-left: 30px; word-break: keep-all; line-height: 1.4;">(${g.why})</div>` : '';
+                    
+                    guidesHtml += `
+                        <div style="background: white; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid var(--border-color);">
+                            <div style="display:flex; align-items:flex-start; font-size: 13px; font-weight: 800; color: var(--text-dark); margin-bottom: 6px; word-break: keep-all; line-height: 1.4;">
+                                ${numCircle}
+                                <span style="padding-top: 2px;"><span class="badge ${b}" style="margin-bottom: 0; padding: 4px 8px;">${t}</span> ${g.bad}</span>
+                            </div>
+                            <div style="font-size: 12px; font-weight: bold; color: var(--primary); margin-bottom: ${g.why ? '4px' : '0'}; padding-left: 30px; word-break: keep-all; line-height: 1.4;">👉 ${g.do}</div>
+                            ${whyHtml}
+                        </div>
+                    `;
+                });
+                
+                if (hidden.length > 0) {
+                    guidesHtml += `
+                        <details style="margin-top: 10px; font-size: 13px;">
+                            <summary style="cursor: pointer; color: var(--text-muted); font-weight: bold; padding: 12px; background: var(--bg-color); border-radius: 12px; transition: 0.2s;">더 보기 (${hidden.length}개 항목)</summary>
+                            <div style="padding-top: 12px;">
+                    `;
+                    hidden.forEach(g => {
+                        let isRed = g.status === 'red';
+                        let b = isRed ? 'badge-red' : 'badge-yellow';
+                        let t = isRed ? '불량' : '주의';
+                        let color = isRed ? '#ef4444' : '#f59e0b';
+                        
+                        let whyHtml = (g.why && g.why.trim() !== '') ? `<div style="font-size: 11px; color: var(--text-muted); word-break: keep-all; line-height: 1.4;">(${g.why})</div>` : '';
+                        
+                        guidesHtml += `
+                            <div style="background: white; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; border: 1px solid var(--border-color);">
+                                <div style="font-size: 13px; font-weight: 800; color: var(--text-dark); margin-bottom: 6px; word-break: keep-all; line-height: 1.4;"><span class="badge ${b}" style="margin-bottom: 0; padding: 4px 8px;">${t}</span> ${g.bad}</div>
+                                <div style="font-size: 12px; font-weight: bold; color: var(--primary); margin-bottom: ${g.why ? '4px' : '0'}; word-break: keep-all; line-height: 1.4;">👉 ${g.do}</div>
+                                ${whyHtml}
+                            </div>
+                        `;
+                    });
+                    guidesHtml += `</div></details>`;
+                }
+                guidesHtml += `</div>`;
+            }
+            
+            overlayHtml += '</svg>';
+            document.getElementById('pinOverlay').innerHTML = overlayHtml + pinsHtml;
+
+            let goodHtml = '';
+            if (data.good_points && data.good_points.length > 0) {
+                goodHtml = `
+                    <div style="margin-top: 15px; padding: 16px; background-color: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0;">
+                        <strong style="font-size: 14px; color: #166534; display: flex; align-items: center; gap: 6px;">✨ 잘하고 있어요!</strong>
+                        <ul style="margin-top: 10px; padding-left: 20px; font-size: 13px; color: #15803d; line-height: 1.6; font-weight: bold;">
+                            ${data.good_points.map(pt => `<li>${pt}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            let supportsHtml = '';
+            if (data.support && data.support.needed) {
+                supportsHtml = `
+                    <div style="margin-top: 15px; padding: 16px; background-color: var(--bg-color); border-radius: 16px; border: 1px solid var(--border-color);">
+                        <strong style="font-size: 15px; color: var(--text-dark); display: block; margin-bottom: 12px; font-weight: 900;">🛠️ ${data.support.message || '보조기구를 사용해주세요'}</strong>
+                        ${(data.support.details || []).map(sup => `
+                            <div style="margin-bottom: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 12px;">
+                                <div style="font-weight: bold; color: var(--primary); font-size: 14px; margin-bottom: 4px;">👉 ${sup.do}</div>
+                                <div style="color: var(--text-muted); font-size: 12px; line-height: 1.5;">(${sup.why})</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            let linesHtml = (data.lines && data.lines.length > 0) ? `
+                <details style="margin-top: 20px; font-size: 12px; color: var(--text-muted);">
+                    <summary style="cursor: pointer; text-decoration: underline; font-weight: bold;">📐 구체적인 각도 및 세부 판정 보기</summary>
+                    <div style="margin-top: 10px; padding: 15px; background: var(--bg-color); border-radius: 12px; border: 1px solid var(--border-color); line-height: 1.6;">
+                        ${data.lines.map(line => `<div>• ${line}</div>`).join('')}
+                    </div>
+                </details>
+            ` : '';
+
+            let missionHtml = '';
+            let saveLabel = displayPose; 
+
+            if (lastRecordedPose === '') {
+                missionHtml = `
+                    <div style="margin-top:24px; padding-top:20px; border-top: 2px dashed #cbd5e1;">
+                        <p style="font-size:15px; font-weight:900; margin-bottom:8px; color: #166534;">✅ 초기 체위 검증 완료</p>
+                        <p style="font-size:13px; color:var(--text-muted); line-height: 1.5; font-weight: bold;">현재 <strong style="color:var(--primary);">${displayPose}</strong>(으)로 초기 체위가 인식되었습니다.</p>
+                        <button class="btn btn-success" style="margin-top:15px; box-shadow: 0 4px 12px rgba(52, 168, 83, 0.3);" onclick="recordPoseTimeline('${saveLabel}', '${data.status}', true)">리포트에 기록하기</button>
+                    </div>
+                `;
+            } else if (lastRecordedPose === saveLabel) {
+                missionHtml = `
+                    <div style="margin-top:24px; padding-top:20px; border-top: 2px dashed #cbd5e1;">
+                        <p style="font-size:15px; font-weight:900; margin-bottom:8px; color: #b91c1c;">🚨 체위 변경 미달성</p>
+                        <p style="font-size:13px; color:var(--text-muted); line-height: 1.5; font-weight: bold;">현재 자세가 직전 기록인 <strong>${lastRecordedPose}</strong>와 동일합니다.<br>권장 체위로 환자를 눕힌 후 <b style="color:var(--primary);">다시 촬영</b>해주세요.</p>
+                        <button class="btn" style="background-color: var(--bg-color); color: #b91c1c; margin-top:15px; border: 2px solid #fecaca; box-shadow:none;" onclick="document.getElementById('poseFileInput').click()">📸 다시 촬영하기</button>
+                    </div>
+                `;
+            } else if (data.status === 'red') {
+                missionHtml = `
+                    <div style="margin-top:24px; padding-top:20px; border-top: 2px dashed #cbd5e1;">
+                        <p style="font-size:15px; font-weight:900; margin-bottom:8px; color: #b91c1c;">🚨 신체선열 불량 (재교정 필요)</p>
+                        <p style="font-size:13px; color:var(--text-muted); line-height: 1.5; font-weight: bold;">체위는 변경되었으나 불량 항목이 있습니다.<br>위 가이드에 맞춰 조정한 후 <b style="color:var(--primary);">다시 촬영</b>받아주세요.</p>
+                        <button class="btn" style="background-color: var(--bg-color); color: #b91c1c; margin-top:15px; border: 2px solid #fecaca; box-shadow:none;" onclick="document.getElementById('poseFileInput').click()">📸 교정 후 다시 촬영하기</button>
+                    </div>
+                `;
+            } else {
+                missionHtml = `
+                    <div style="margin-top:24px; padding-top:20px; border-top: 2px dashed #cbd5e1;">
+                        <p style="font-size:15px; font-weight:900; margin-bottom:8px; color: #166534;">✅ 체위 변경 검증 완료</p>
+                        <p style="font-size:13px; color:var(--text-muted); line-height: 1.5; font-weight: bold;"><strong>${lastRecordedPose}</strong>에서 <strong style="color:var(--primary);">${displayPose}</strong>(으)로 올바르게 변경되었습니다.</p>
+                        <button class="btn btn-success" style="margin-top:15px; box-shadow: 0 4px 12px rgba(52, 168, 83, 0.3);" onclick="recordPoseTimeline('${saveLabel}', '${data.status}', false)">리포트에 기록하기</button>
+                    </div>
+                `;
+            }
+
+            document.getElementById('poseResultArea').innerHTML = `
+                <div class="card" style="animation: slideUp 0.5s; border: 2px solid ${bgColor}; padding: 25px;">
+                    ${warningHtml}
+                    <div class="card-title" style="color: ${fontColor}; font-size: 20px; font-weight: 900; text-align: center; margin-bottom: 20px;">${titleText}</div>
+                    ${guidesHtml}
+                    ${goodHtml}
+                    ${supportsHtml}
+                    ${linesHtml}
+                    ${missionHtml}
+                </div>
+            `;
+
+            btn.style.display = 'none';
+            document.getElementById('poseResultArea').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        } catch (e) { 
+            console.error("통신 에러 상세:", e);
+            alert(`서버 통신 중 오류가 발생했습니다.\n에러 내용: ${e.message}`); 
+        } finally { 
+            btn.innerText = 'AI 정렬 분석 시작';
+            btn.disabled = false; 
+        }
+    }
+
+    function getPoseRotiNum(poseName) {
+        if (poseName.includes("왼쪽") || poseName.includes("좌측위")) return 1; 
+        if (poseName.includes("오른쪽") || poseName.includes("우측위")) return 3; 
+        return 2; 
+    }
+
+    function recordPoseTimeline(poseName, status, isFirstRecord = false) {
+        let rotiNum = getPoseRotiNum(poseName);
+        let statusText = status === 'green' ? '✅ 정상 정렬' : '⚠️ 주의 상태';
+        let actionText = isFirstRecord ? '초기 체위 기록 완료' : 'AI 사진검증 완료';
+        
+        let badgeClass = "badge-blue";
+        if (rotiNum === 3) badgeClass = "badge-yellow"; 
+        if (rotiNum === 1) badgeClass = "badge-red"; 
+        
+        let poseHtml = `<span class="badge ${badgeClass}">${poseName}</span><br><span style="font-size: 11px; color:var(--success); font-weight: bold; display: inline-block; margin-top: 4px;">${statusText}</span><br><span style="font-size: 11px; color:var(--text-muted);">${actionText}</span>`;
+        let woundHtml = `<span style="font-size: 12px; color:var(--border-color); font-weight: bold;">-</span>`;
+
+        const today = getTodayDateStr();
+        if(!globalTimeline[today]) globalTimeline[today] = [];
+        
+        globalTimeline[today].push({ 
+            time: getCurrentTime(), 
+            poseHtml, 
+            woundHtml, 
+            isPose: true,
+            raw: { type: 'pose', roti: rotiNum, name: poseName, status: status }
+        });
+        localStorage.setItem('medisore_timeline', JSON.stringify(globalTimeline));
+        
+        lastRecordedPose = poseName;
+        localStorage.setItem('medisore_last_pose', lastRecordedPose);
+        localStorage.setItem('medisore_last_time', new Date().toISOString());
+        
+        alarmTriggered = false;
+        
+        updateAchievementRate(); // ⭐️ 기록 저장 후 목표 달성률 즉시 업데이트 적용
+        
+        renderHomeSchedule(); 
+        switchTab('home', document.querySelectorAll('.nav-item')[0]);
+        
+        document.getElementById('poseResultArea').innerHTML = ''; 
+        document.getElementById('poseDropZone').style.display = 'block'; 
+        document.getElementById('imageOverlayContainer').style.display = 'none'; 
+        document.getElementById('posePreviewImg').src = '';
+        document.getElementById('pressureNoteArea').innerHTML = '';
+        document.getElementById('pinOverlay').innerHTML = ''; 
+        document.getElementById('poseAnalyzeBtn').style.display = 'none';
+        document.getElementById('poseFileInput').value = '';
+        
+        let nextPose = "바로 누움";
+        if (rotiNum === 2) nextPose = "왼쪽으로 누움";
+        else if (rotiNum === 1) nextPose = "오른쪽으로 누움";
+        else if (rotiNum === 3) nextPose = "바로 누움";
+
+        document.getElementById('nextRecommendedPose').innerText = `추천: ${nextPose}`;
+        localStorage.setItem('medisore_next_pose', nextPose);
+
+        alert(`자세 리포트에 성공적으로 기록되었습니다!`);
+    }
+
+    async function sendToAI() {
+        if (!woundFile) return;
+        if (!selectedBodyPart) { alert("상단 인체도에서 욕창 발생 부위를 먼저 터치해주세요."); return; }
+
+        const btn = document.getElementById('analyzeBtn');
+        btn.innerText = '분석 중...'; btn.disabled = true;
+        
+        const formData = new FormData(); 
+        formData.append('file', woundFile);
+        
+        try {
+            const response = await fetch('/analyze', { method: 'POST', body: formData });
+            const data = await response.json();
+            
+            if (data.error) { alert(data.error); return; }
+            
+            const guideOverlay = document.getElementById('woundGuideOverlay');
+            if (guideOverlay) guideOverlay.style.display = 'none';
+
+            const resArea = document.getElementById('resultArea');
+            if (data.low_confidence || data.reject) {
+                resArea.innerHTML = `<div class="card" style="background-color: #fef2f2; border: 2px solid #fecaca; margin-top: 15px;"><div class="card-title" style="color: #b91c1c; font-size: 18px; font-weight: 900;">⚠️ 재촬영 필요</div><div style="font-size: 14px; color: #ef4444; font-weight: bold; margin-top: 10px;">${data.message}</div></div>`;
+            } else {
+                const stageMatch = data.label.match(/\d+/);
+                const stageNum = stageMatch ? parseInt(stageMatch[0]) : 1;
+                
+                resArea.innerHTML = `
+                    <div class="card" style="border: 2px solid var(--primary-light); padding: 25px; margin-top: 15px;">
+                        <div class="card-title" style="color: var(--primary); font-size: 20px; font-weight: 900; text-align: center; margin-bottom: 15px;">✅ 분석 완료: ${data.label}</div>
+                        <div style="background-color: var(--primary-light); padding: 15px; border-radius: 12px; font-size: 15px; color: var(--text-dark); margin-bottom:15px; font-weight: bold; text-align: center;">${data.message}</div>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px; text-align: center; font-weight: bold; line-height: 1.6; background: var(--card-bg); padding: 10px; border-radius: 12px;">
+                            1단계: ${(data.probs["Stage 1"]*100).toFixed(1)}% <span style="color:var(--border-color)">|</span> 2단계: ${(data.probs["Stage 2"]*100).toFixed(1)}% <br>
+                            3단계: ${(data.probs["Stage 3"]*100).toFixed(1)}% <span style="color:var(--border-color)">|</span> 4단계: ${(data.probs["Stage 4"]*100).toFixed(1)}%
+                        </p>
+                        <button class="btn btn-outline" style="font-size:14px; padding:14px; font-weight: bold;" onclick="goToTreatment(${stageNum})">📖 해당 단계 처치법 및 준비물 확인</button>
+                    </div>`;
+
+                setupWoundMission(stageNum, selectedBodyPart);
+            }
+        } catch (e) { alert('오류 발생'); } 
+        finally { btn.innerText = 'AI 단계 판별하기'; btn.disabled = false; }
+    }
+
+    function setupWoundMission(stageNum, partName) {
+        document.getElementById('mission-area-1').innerHTML = '';
+        document.getElementById('mission-area-2').innerHTML = '';
+        document.getElementById('mission-area-34').innerHTML = '';
+
+        let targetId = 'mission-area-1';
+        if (stageNum == 2) targetId = 'treat-stage2';
+        if (stageNum >= 3) targetId = 'treat-stage34';
+
+        let woundMissionHtml = `
+            <div style="margin-top:20px; padding-top:20px; border-top: 2px dashed var(--border-color);">
+                <p style="font-size:15px; font-weight:900; margin-bottom:10px; color: var(--primary);">💡 추천 처치 (미션)</p>
+                <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px; font-weight: bold;">발생 부위: <strong style="color:var(--danger);">[${partName}]</strong></p>
+                <label style="font-size:15px; font-weight: bold; display:flex; align-items:center; gap:10px; color: var(--text-dark); cursor: pointer; padding: 12px; background: var(--bg-color); border-radius: 12px;">
+                    <input type="checkbox" id="woundCheckbox" style="width:20px; height:20px; cursor: pointer;">
+                    세척 및 드레싱 교체 완료
+                </label>
+                <button class="btn btn-success" style="margin-top:15px;" onclick="recordWoundTimeline('${stageNum}')">리포트에 기록하기</button>
+            </div>
+        `;
+
+        document.getElementById(targetId).innerHTML += woundMissionHtml;
+    }
+
+    function recordWoundTimeline(stageNum) {
+        if (!document.getElementById('woundCheckbox').checked) { alert("드레싱 교체 완료 체크박스를 먼저 선택해주세요."); return; }
+        
+        let poseHtml = `<span style="font-size: 12px; color:var(--border-color); font-weight: bold;">-</span>`;
+        let woundHtml = `
+            <span class="badge badge-yellow">Stage ${stageNum}</span><br>
+            <span style="font-size: 12px; font-weight:900; color:var(--primary); display: inline-block; margin-top: 4px;">[${selectedBodyPart}]</span><br>
+            <span style="font-size: 11px; font-weight: bold; color:var(--success);">드레싱 교체 완료</span>
+        `;
+
+        const today = getTodayDateStr();
+        if(!globalTimeline[today]) globalTimeline[today] = [];
+        
+        globalTimeline[today].push({ 
+            time: getCurrentTime(), 
+            poseHtml, 
+            woundHtml, 
+            isPose: false,
+            raw: { type: 'wound', part: selectedBodyPart, stage: stageNum, action: '드레싱 교체 완료' }
+        });
+        localStorage.setItem('medisore_timeline', JSON.stringify(globalTimeline));
+        
+        alert(`상처 리포트에 성공적으로 기록되었습니다!`);
+        document.getElementById('woundCheckbox').checked = false;
+    }
+
+    async function downloadWeeklyReport() {
+        if (Object.keys(globalTimeline).length === 0) {
+            alert("다운로드할 기록이 없습니다.");
+            return;
+        }
+
+        let reportData = [];
+        let monthStr = String(calMonth).padStart(2, '0');
+        let prefix = `${calYear}-${monthStr}-`;
+        
+        for (let d = 1; d <= 31; d++) {
+            let dateStr = prefix + String(d).padStart(2, '0');
+            if (globalTimeline[dateStr] && globalTimeline[dateStr].length > 0) {
+                
+                let dayRecords = [];
+                
+                globalTimeline[dateStr].forEach(item => {
+                    if (item.raw) {
+                        if (item.isPose) {
+                            dayRecords.push({
+                                time: item.time,
+                                type: 'pose',
+                                roti: item.raw.roti, 
+                                name: item.raw.name  
+                            });
+                        } else {
+                            dayRecords.push({
+                                time: item.time,
+                                type: 'wound',
+                                part: item.raw.part, 
+                                stage: item.raw.stage,
+                                action: item.raw.action
+                            });
+                        }
+                    } else {
+                        if (!item.isPose) {
+                            let stageMatch = item.woundHtml.match(/Stage\s*(\d+)/i);
+                            let partMatch = item.woundHtml.match(/\[(.*?)\]/);
+                            if (stageMatch && partMatch) {
+                                dayRecords.push({
+                                    time: item.time, type: 'wound', part: partMatch[1], stage: parseInt(stageMatch[1]), action: '드레싱 교체 완료'
+                                });
+                            }
+                        }
+                    }
+                });
+                
+                if(dayRecords.length > 0) {
+                    reportData.push({
+                        date: dateStr,
+                        events: dayRecords
+                    });
+                }
+            }
+        }
+
+        if (reportData.length === 0) {
+            alert("선택하신 월의 기록이 없습니다.");
+            return;
+        }
+
+        try {
+            const response = await fetch('/download_pdf', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    patient_name: currentPatient.name,
+                    gender: currentPatient.gender,
+                    age: currentPatient.age,
+                    caregiver_id: currentCaregiver.id,
+                    year: calYear,
+                    month: calMonth,
+                    timeline: reportData 
+                })
+            });
+
+            if (!response.ok) throw new Error("서버에서 PDF를 생성하는 중 오류가 발생했습니다. (malgun.ttf 폰트 유무 등을 확인하세요)");
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `욕창관리기록지_${currentPatient.name}_${calYear}${monthStr}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            alert(error.message);
+            console.error(error);
+        }
+    }
+</script>
+</body>
+</html>
