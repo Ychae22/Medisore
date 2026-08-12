@@ -233,7 +233,7 @@
 
 <div class="app-container">
     <!-- 배경 워터마크 -->
-    <img src="/static/logo_3.png" class="watermark-bg" alt="medisore watermark" onerror="this.src='/static/logo.png'; this.onerror=null;">
+    <img src="./static/logo_3.png" class="watermark-bg" alt="medisore watermark" onerror="this.src='./static/logo.png'; this.onerror=null;">
 
     <!-- ⭐️ 알람 모달창 -->
     <div id="alarmModal" class="modal-overlay">
@@ -274,13 +274,13 @@
 
     <!-- 스플래시 화면 -->
     <div id="splash">
-        <img src="/static/logo_3.png" alt="medisore text" class="splash-logo-text" onerror="this.src='/static/logo.png'; this.onerror=null;">
-        <img src="/static/logo_2_3.png" alt="medisore symbol" class="splash-logo-symbol" onerror="this.src='/static/logo_2_2.png'; this.onerror=null;">
+        <img src="./static/logo_3.png" alt="medisore text" class="splash-logo-text" onerror="this.src='./static/logo.png'; this.onerror=null;">
+        <img src="./static/logo_2_3.png" alt="medisore symbol" class="splash-logo-symbol" onerror="this.src='./static/logo_2_2.png'; this.onerror=null;">
     </div>
 
     <!-- 헤더 영역 -->
     <div class="header" id="headerArea" style="display: none;">
-        <img src="/static/logo_3.png" alt="medisore" class="header-logo" onerror="this.src='/static/logo.png'; this.onerror=null;">
+        <img src="./static/logo_3.png" alt="medisore" class="header-logo" onerror="this.src='./static/logo.png'; this.onerror=null;">
         <span id="headerSpec" class="header-spec"></span>
     </div>
     
@@ -289,7 +289,7 @@
         <!-- ================= [ 시작 화면 0 (간병인 로그인) ] ================= -->
         <div id="login" class="page start-page">
             <div style="text-align: center; margin-bottom: 40px;">
-                <img src="/static/logo_2_3.png" alt="MediSore Logo" style="width: 120px; height: 120px; object-fit: contain; margin-bottom: 20px;" onerror="this.src='/static/logo.png'; this.onerror=null;">
+                <img src="./static/logo_2_3.png" alt="MediSore Logo" style="width: 120px; height: 120px; object-fit: contain; margin-bottom: 20px;" onerror="this.src='./static/logo.png'; this.onerror=null;">
                 <h2 style="color: var(--text-dark); margin-bottom: 10px; font-weight: 900; font-size: 24px;">사용자 로그인</h2>
                 <p style="color: var(--text-muted); font-size: 15px;">스마트한 욕창 관리의 시작</p>
             </div>
@@ -383,7 +383,7 @@
                 </p>
                 
                 <!-- ⭐️ 추가된 고퀄리티 가이드 이미지 (텍스트 아래 배치) -->
-                <img src="/static/pose_guide.png" alt="촬영 가이드 상세" style="width: 100%; height: auto; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
+                <img src="./static/pose_guide.png" alt="촬영 가이드 상세" style="width: 100%; height: auto; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
 
 
                 <div class="upload-zone" id="poseDropZone" onclick="document.getElementById('poseFileInput').click()">
@@ -421,7 +421,7 @@
                     
                     <!-- 후면 (왼쪽 사람) -->
                     <div class="body-map-container" style="flex: 1; max-width: 150px;">
-                        <img src="/static/body_map_back.png" class="body-map-img" alt="인체도 후면" onerror="this.src='body_map_back.png';">
+                        <img src="./static/body_map_back.png" class="body-map-img" alt="인체도 후면" onerror="this.src='./static/body_map_back.png';">
                         
                         <div class="body-dot" style="left: 51%; top: 10%;" onclick="selectBodyPart('뒤통수', this)"></div>
                         <div class="body-dot" style="left: 39%; top: 24%;" onclick="selectBodyPart('왼쪽 견갑골', this)"></div>
@@ -442,7 +442,7 @@
 
                     <!-- 전면 (오른쪽 사람) -->
                     <div class="body-map-container" style="flex: 1; max-width: 150px;">
-                        <img src="/static/body_map_front.png" class="body-map-img" alt="인체도 전면" onerror="this.src='body_map_front.png';">
+                        <img src="./static/body_map_front.png" class="body-map-img" alt="인체도 전면" onerror="this.src='./static/body_map_front.png';">
                         
                         <div class="body-dot" style="left: 36%; top: 13%;" onclick="selectBodyPart('왼쪽 귀', this)"></div>
                         <div class="body-dot" style="left: 58%; top: 13%;" onclick="selectBodyPart('오른쪽 귀', this)"></div>
@@ -892,19 +892,19 @@
         flowUI.innerHTML = `
             <div class="status-item">
                 <div class="status-time">${formatTimeObject(prevTime)}</div>
-                <img src="/static/${prevPose.image}" class="status-img" alt="${prevPose.name}" onerror="this.style.display='none'">
+                <img src="./static/${prevPose.image}" class="status-img" alt="${prevPose.name}" onerror="this.style.display='none'">
                 <div class="status-name">${prevPose.name}</div>
             </div>
             <svg class="status-arrow" viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
             <div class="status-item current">
                 <div class="status-time">${formatTimeObject(baseTime)}</div>
-                <img src="/static/${currPose.image}" class="status-img" alt="${currPose.name}" onerror="this.style.display='none'">
+                <img src="./static/${currPose.image}" class="status-img" alt="${currPose.name}" onerror="this.style.display='none'">
                 <div class="status-name">${currPose.name}</div>
             </div>
             <svg class="status-arrow" viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
             <div class="status-item">
                 <div class="status-time">${formatTimeObject(nextTime)}</div>
-                <img src="/static/${nextPose.image}" class="status-img" alt="${nextPose.name}" onerror="this.style.display='none'">
+                <img src="./static/${nextPose.image}" class="status-img" alt="${nextPose.name}" onerror="this.style.display='none'">
                 <div class="status-name">${nextPose.name}</div>
             </div>
         `;
@@ -942,7 +942,7 @@
             const imgSize = 36;
             const imgX = nodeX - imgSize / 2;
             const imgY = nodeY - imgSize / 2;
-            svgHtml += `<image href="/static/${pose.icon}" x="${imgX}" y="${imgY}" width="${imgSize}" height="${imgSize}" />`;
+            svgHtml += `<image href="./static/${pose.icon}" x="${imgX}" y="${imgY}" width="${imgSize}" height="${imgSize}" />`;
             
             // 5. 노드 바깥쪽에 시간 텍스트 표시
             const textR = r + 55; // 원 바깥으로 텍스트 밀어내기 (겹침 방지)
