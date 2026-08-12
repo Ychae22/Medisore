@@ -1,13 +1,13 @@
-# 욕창 프로젝트 · 자세 확인 모듈(pose_check.py) 의존성
-# 설치:  pip install -r requirements.txt
+# AI 및 이미지 처리
+mediapipe>=0.10.14
+numpy>=1.24
+pillow>=10.0.0
+opencv-python-headless>=4.0.0
 
-mediapipe>=0.10.14      # 0.10.x = 내장 포즈 모델(오프라인 OK) / 1.0+ = Tasks API(.task 파일 자동 다운로드)
-                        # cv2 는 mediapipe 가 의존하는 opencv-contrib-python 으로 함께 깔립니다.
-                        # opencv-python 을 따로 넣으면 cv2 폴더가 겹쳐 설치가 깨지므로 여기 적지 않습니다.
-numpy>=1.24             # 각도 · 거리 계산
-pillow>=10.0.0          # 배너 한글 폰트 렌더링 (없으면 영문 OK/WARN/BAD로 자동 대체)
+# 웹 서버 및 API 통신
+Flask>=2.0.0
+Flask-CORS>=3.0.0
+gunicorn>=20.1.0
 
-# [WinError 5] 액세스가 거부되었습니다: ...\cv2\cv2.pyd 가 나오면
-#   1) 파이썬을 쓰는 프로그램 전부 닫기 (Jupyter, VS Code, Spyder, 다른 cmd 창)
-#   2) pip uninstall -y opencv-python opencv-contrib-python opencv-python-headless
-#   3) pip install -r requirements.txt
+# PDF 리포트 생성
+reportlab>=4.0.0
