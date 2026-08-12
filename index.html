@@ -1178,7 +1178,8 @@
         formData.append('L0', globalL0);        
         
         try {
-            const response = await fetch('/analyze_pose', { method: 'POST', body: formData });
+            // 🚀 배포용 렌더 주소로 수정 (자세 분석)
+            const response = await fetch('https://medisore-api.onrender.com/analyze_pose', { method: 'POST', body: formData });
             
             if (!response.ok) { throw new Error(`서버 응답 오류 (상태 코드: ${response.status})`); }
 
@@ -1477,7 +1478,8 @@
         formData.append('file', woundFile);
         
         try {
-            const response = await fetch('/analyze', { method: 'POST', body: formData });
+            // 🚀 배포용 렌더 주소로 수정 (상처 분석)
+            const response = await fetch('https://medisore-api.onrender.com/analyze', { method: 'POST', body: formData });
             const data = await response.json();
             
             if (data.error) { alert(data.error); return; }
@@ -1621,7 +1623,8 @@
         }
 
         try {
-            const response = await fetch('/download_pdf', {
+            // 🚀 배포용 렌더 주소로 수정 (PDF 다운로드)
+            const response = await fetch('https://medisore-api.onrender.com/download_pdf', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
