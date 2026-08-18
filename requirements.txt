@@ -1,16 +1,9 @@
-# AI 및 이미지 처리
-mediapipe>=0.10.14
-numpy>=1.24
-pillow>=10.0.0
-opencv-python-headless>=4.0.0
-
-# 웹 서버 및 API 통신
-Flask>=2.0.0
-Flask-CORS>=3.0.0
-gunicorn>=20.1.0
-
-# PDF 리포트 생성
-reportlab>=4.0.0
-
-streamlit
-requests
+Flask
+flask-cors
+gunicorn
+numpy
+opencv-python-headless
+Pillow
+reportlab
+torch
+torchvision
