@@ -11,3 +11,6 @@ gunicorn>=20.1.0
 
 # PDF 리포트 생성
 reportlab>=4.0.0
+
+streamlit
+requests
