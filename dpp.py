@@ -4,6 +4,7 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 import base64
 from io import BytesIO
 from flask import Flask, request, jsonify, render_template, send_file
+from flask_cors import CORS # ⭐️ 1. CORS 라이브러리 추가
 import numpy as np
 import cv2
 from PIL import Image
@@ -13,6 +14,10 @@ from infer import predict
 from pose import analyze_posture
 
 app = Flask(__name__)
+CORS(app) # ⭐️ 2. 모든 도메인에서 이 서버로 요청할 수 있도록 허용!
+
+@app.route('/')
+# ... (이하 기존 코드 동일) ...
 
 @app.route('/')
 def home():
