@@ -39,7 +39,9 @@ def analyze_posture(img_array, pose_type="supine", W0=None, L0=None, H0=None):
         if found is None:
             return None, {'error': '사람을 찾지 못했습니다. 몸 전체가 보이게 다시 촬영해 주세요.'}
 
-        pts2d, pts3d, low_vis, avg_vis, vis, body_mask = found
+        # ⭐️ 5개의 값만 받고 body_mask는 None으로 선언하여 unpack 오류 방지
+        pts2d, pts3d, low_vis, avg_vis, vis = found
+        body_mask = None
 
         # 프론트에서 넘어온 앙와위 기준값(있으면 사용)
         calib = {}
