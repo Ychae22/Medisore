@@ -358,10 +358,13 @@ MODEL_FILE = os.path.join(SCRIPT_DIR, "pose_landmarker_lite.task")
 MODEL_URL = ("https://storage.googleapis.com/mediapipe-models/pose_landmarker/"
              "pose_landmarker_lite/float16/latest/pose_landmarker_lite.task")
 
+
 # ---------------------------------------------------------------- 관절 추출
 _POSE = None
+
+
 def _detect_legacy(image_bgr):
-    """mediapipe 0.10.14 안정 내장 모델 (libGLES 에러 없음, 메모리 30MB)"""
+    """안전한 순수 관절 추출 모드 (C++ 충돌 원인인 segmentation 제거)"""
     global _POSE
     if _POSE is None:
         try:
@@ -371,17 +374,15 @@ def _detect_legacy(image_bgr):
             
         _POSE = mp_pose.Pose(
             static_image_mode=True, 
-            model_complexity=0,  # 0: Lite 모델 (초경량/초고속)
-            enable_segmentation=True,
+            model_complexity=1,
+            enable_segmentation=False,  # ⭐️ C++ 충돌 방지를 위해 False로 설정!
             min_detection_confidence=MIN_DETECT_CONF
         )
-    res = _POSE.process(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB))
+    rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+    res = _POSE.process(rgb)
     if not res or not res.pose_landmarks:
         return None, None
-    return res.pose_landmarks.landmark, getattr(res, "segmentation_mask", None)
-def _pick_api(api="legacy"):
-    """항상 안정적인 CPU 내장 모델 사용"""
-    return _detect_legacy
+    return res.pose_landmarks.landmark, None
 
 
 def _ensure_model():
@@ -472,14 +473,9 @@ def _detect_tasks(image_bgr):
     return res.pose_landmarks[0], mask
 
 
-def _pick_api(api="auto"):
-    """사용할 MediaPipe 경로 결정. 0.10.x는 내장 모델(legacy), 1.0+는 Tasks API."""
-    if api == "legacy" or (api == "auto" and hasattr(mp, "solutions")):
-        if not hasattr(mp, "solutions"):
-            sys.exit("[오류] 이 mediapipe(%s)에는 solutions API가 없습니다. --api tasks 를 쓰세요."
-                     % mp.__version__)
-        return _detect_legacy
-    return _detect_tasks
+def _pick_api(api="legacy"):
+    """항상 안전한 CPU 레거시 모델 사용"""
+    return _detect_legacy
 
 
 def extract_landmarks(image_bgr, min_vis=MIN_VIS, api="auto", want_mask=False):
@@ -729,7 +725,7 @@ def detect_down_side(pts2d, vis, pts3d=None):
     """측위에서 어느 쪽 어깨가 바닥에 닿았는지(=아래쪽 다리) 판별.
 
     옆으로 누우면 얼굴이 위로 올라온 쪽을 향하므로, 코가 귀중점에서 좌우 어느 쪽으로
-    벗어났는지로 알 수 있습니다.
+    벗어났는지로 알 수 이습니다.
       실측 10장 — 값이 -0.16~-0.08 과 +0.13 두 무리로 뚜렷하게 갈림
       정답 3장 대조 — 3/3 일치
     ※ MediaPipe visibility 로는 판별할 수 없습니다. 좌우 차이가 0.000~0.005로 잡음 수준입니다.
