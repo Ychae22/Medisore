@@ -360,9 +360,8 @@ MODEL_URL = ("https://storage.googleapis.com/mediapipe-models/pose_landmarker/"
 
 # ---------------------------------------------------------------- 관절 추출
 _POSE = None
-
 def _detect_legacy(image_bgr):
-    """mediapipe CPU 내장 모델 사용 (libGLES 필요 없음, 30MB 초경량)"""
+    """mediapipe 0.10.14 안정 내장 모델 (libGLES 에러 없음, 메모리 30MB)"""
     global _POSE
     if _POSE is None:
         try:
@@ -380,11 +379,10 @@ def _detect_legacy(image_bgr):
     if not res or not res.pose_landmarks:
         return None, None
     return res.pose_landmarks.landmark, getattr(res, "segmentation_mask", None)
-
-
 def _pick_api(api="legacy"):
-    """Render 환경 호환성을 위해 무조건 안정적인 CPU 내장 legacy 모델 사용"""
+    """항상 안정적인 CPU 내장 모델 사용"""
     return _detect_legacy
+
 
 def _ensure_model():
     """Tasks API용 .task 모델 확보. 없으면 1회 다운로드, 실패 시 안내하고 종료."""
