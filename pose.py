@@ -34,8 +34,8 @@ def analyze_posture(img_array, pose_type="supine", W0=None, L0=None, H0=None):
     없으면 자세 판별이 근사로 떨어지고 상체·하체 비틀림은 계산되지 않습니다.
     """
     try:
-        # want_mask=True — 사람 실루엣은 히트맵 표시에만 씁니다(판정에는 안 씀).
-        found = extract_landmarks(img_array, want_mask=True)
+        # want_mask=False — 사람 실루엣은 히트맵 표시에만 씁니다(판정에는 안 씀).
+        found = extract_landmarks(img_array, want_mask=False)
         if found is None:
             return None, {'error': '사람을 찾지 못했습니다. 몸 전체가 보이게 다시 촬영해 주세요.'}
 
