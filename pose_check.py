@@ -358,27 +358,33 @@ MODEL_FILE = os.path.join(SCRIPT_DIR, "pose_landmarker_lite.task")
 MODEL_URL = ("https://storage.googleapis.com/mediapipe-models/pose_landmarker/"
              "pose_landmarker_lite/float16/latest/pose_landmarker_lite.task")
 
-
 # ---------------------------------------------------------------- 관절 추출
 _POSE = None
 
-
 def _detect_legacy(image_bgr):
-    """mediapipe 0.10.x: 내장 모델 사용, 파일 다운로드 불필요. 인스턴스는 재사용.
-
-    반환: (관절목록, 사람실루엣 or None)
-    실루엣은 히트맵 표시에만 씁니다 — 판정에 넣어봤지만 관절보다 나빴습니다.
-    """
+    """mediapipe CPU 내장 모델 사용 (libGLES 필요 없음, 30MB 초경량)"""
     global _POSE
     if _POSE is None:
-        _POSE = mp.solutions.pose.Pose(static_image_mode=True, model_complexity=1,
-                                       enable_segmentation=True,
-                                       min_detection_confidence=MIN_DETECT_CONF)
+        try:
+            import mediapipe.python.solutions.pose as mp_pose
+        except Exception:
+            mp_pose = mp.solutions.pose
+            
+        _POSE = mp_pose.Pose(
+            static_image_mode=True, 
+            model_complexity=0,  # 0: Lite 모델 (초경량/초고속)
+            enable_segmentation=True,
+            min_detection_confidence=MIN_DETECT_CONF
+        )
     res = _POSE.process(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB))
-    if not res.pose_landmarks:
+    if not res or not res.pose_landmarks:
         return None, None
     return res.pose_landmarks.landmark, getattr(res, "segmentation_mask", None)
 
+
+def _pick_api(api="legacy"):
+    """Render 환경 호환성을 위해 무조건 안정적인 CPU 내장 legacy 모델 사용"""
+    return _detect_legacy
 
 def _ensure_model():
     """Tasks API용 .task 모델 확보. 없으면 1회 다운로드, 실패 시 안내하고 종료."""
