@@ -14,7 +14,8 @@ from infer import predict
 from pose import analyze_posture
 
 app = Flask(__name__)
-CORS(app)  # 모든 도메인 CORS 허용
+# ⭐️ 명시적으로 모든 라우트(경로)에 대해 모든 도메인의 접근을 허용합니다.
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # 대용량 이미지 안전 리사이징 함수 (메모리 512MB 보호)
 def resize_if_large(img, max_dim=1024):
