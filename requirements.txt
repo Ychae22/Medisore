@@ -1,10 +1,11 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
 Flask
 flask-cors
 gunicorn
+Pillow
 numpy
 opencv-python-headless
-Pillow
-reportlab
-torch
-torchvision
 mediapipe
+reportlab
